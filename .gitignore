@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.env
+*.log
+uploads/
+server/static/
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
