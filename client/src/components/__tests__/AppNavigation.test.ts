@@ -1,0 +1,47 @@
+import { describe, it, expect, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import { createRouter, createWebHistory } from 'vue-router'
+import AppNavigation from '../AppNavigation.vue'
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    { path: '/', component: { template: '<div />' } },
+    { path: '/plants/new', component: { template: '<div />' } },
+    { path: '/settings', component: { template: '<div />' } },
+    { path: '/admin', component: { template: '<div />' } },
+  ],
+})
+
+function mountNav() {
+  return mount(AppNavigation, {
+    global: {
+      plugins: [router],
+    },
+  })
+}
+
+describe('AppNavigation', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('renders the app name', () => {
+    const wrapper = mountNav()
+    expect(wrapper.text()).toContain('Zaindari')
+  })
+
+  it('renders dashboard and add plant links', () => {
+    const wrapper = mountNav()
+    expect(wrapper.text()).toContain('Dashboard')
+    expect(wrapper.text()).toContain('+ Add Plant')
+  })
+
+  it('shows logout in mobile menu when opened', async () => {
+    const wrapper = mountNav()
+    const hamburger = wrapper.find('button')
+    await hamburger.trigger('click')
+    expect(wrapper.text()).toContain('Logout')
+  })
+})

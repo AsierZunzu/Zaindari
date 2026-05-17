@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TaskType {
+  watering
+  fertilization
+  misting
+  repotting
+}
+
+enum TaskStatus {
+  pending
+  done
+  snoozed
+  skipped
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  displayName  String   @map("display_name")
+  email        String?
+  passwordHash String?  @map("password_hash")
+  oidcSubject  String?  @map("oidc_subject")
+  isAdmin      Boolean  @default(false) @map("is_admin")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  plants            Plant[]
+  sharedPlants      PlantShare[]     @relation("SharedWith")
+  grantedShares     PlantShare[]     @relation("GrantedBy")
+  completedTasks    Task[]           @relation("CompletedBy")
+  pushSubscriptions PushSubscription[]
+
+  @@map("users")
+}
+
+model Plant {
+  id           String   @id @default(uuid())
+  ownerId      String   @map("owner_id")
+  name         String
+  location     String?
+  instructions String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  owner     User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  shares    PlantShare[]
+  images    PlantImage[]
+  schedules PlantSchedule[]
+  tasks     Task[]
+
+  @@map("plants")
+}
+
+model PlantShare {
+  plantId   String   @map("plant_id")
+  userId    String   @map("user_id")
+  grantedBy String   @map("granted_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  plant   Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  user    User  @relation("SharedWith", fields: [userId], references: [id], onDelete: Cascade)
+  granter User  @relation("GrantedBy", fields: [grantedBy], references: [id])
+
+  @@id([plantId, userId])
+  @@map("plant_shares")
+}
+
+model PlantImage {
+  id        String   @id @default(uuid())
+  plantId   String   @map("plant_id")
+  filePath  String   @map("file_path")
+  isCurrent Boolean  @default(true) @map("is_current")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  plant Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@map("plant_images")
+}
+
+model DefaultSchedule {
+  id           String   @id @default(uuid())
+  taskType     TaskType @unique @map("task_type")
+  intervalDays Int      @map("interval_days")
+  hour         Int
+  minute       Int      @default(0)
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("default_schedules")
+}
+
+model PlantSchedule {
+  id           String   @id @default(uuid())
+  plantId      String   @map("plant_id")
+  taskType     TaskType @map("task_type")
+  intervalDays Int      @map("interval_days")
+  hour         Int
+  minute       Int      @default(0)
+  enabled      Boolean  @default(true)
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  plant Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@unique([plantId, taskType])
+  @@map("plant_schedules")
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  plantId     String     @map("plant_id")
+  taskType    TaskType   @map("task_type")
+  status      TaskStatus @default(pending)
+  dueAt       DateTime   @map("due_at")
+  completedAt DateTime?  @map("completed_at")
+  completedBy String?    @map("completed_by")
+  snoozeUntil DateTime?  @map("snooze_until")
+  skipReason  String?    @map("skip_reason")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  plant     Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  completer User? @relation("CompletedBy", fields: [completedBy], references: [id])
+
+  @@index([plantId, status])
+  @@index([dueAt])
+  @@map("tasks")
+}
+
+model PushSubscription {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  endpoint String   @unique
+  p256dh   String
+  auth     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
+}
+
+model AppConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_config")
+}
+
+model OidcConfig {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  issuerUrl    String   @map("issuer_url")
+  clientId     String   @map("client_id")
+  clientSecret String   @map("client_secret")
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("oidc_config")
+}
