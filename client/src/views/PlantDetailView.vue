@@ -2,9 +2,12 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { plantsApi } from '../api/plants'
+import { tasksApi } from '../api/tasks'
 import type { PlantWithImage } from '../api/plants'
-import type { PlantImage } from '../types'
+import type { PlantImage, Task } from '../types'
 import ShareDialog from '../components/ShareDialog.vue'
+import TaskList from '../components/TaskList.vue'
+import ScheduleEditor from '../components/ScheduleEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,24 +17,32 @@ const plant = ref<PlantWithImage | null>(null)
 const images = ref<PlantImage[]>([])
 const loading = ref(true)
 const error = ref('')
+const tasks = ref<Task[]>([])
 const showDeleteConfirm = ref(false)
 const showShareDialog = ref(false)
+const showSchedules = ref(false)
 const selectedImageUrl = ref<string | null>(null)
 
 onMounted(async () => {
   try {
-    const [plantData, imageData] = await Promise.all([
+    const [plantData, imageData, taskData] = await Promise.all([
       plantsApi.get(plantId),
       plantsApi.getImages(plantId),
+      tasksApi.getForPlant(plantId, { limit: 20 }),
     ])
     plant.value = plantData
     images.value = imageData
+    tasks.value = taskData
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load plant'
   } finally {
     loading.value = false
   }
 })
+
+async function refreshTasks() {
+  tasks.value = await tasksApi.getForPlant(plantId, { limit: 20 })
+}
 
 async function handleDelete() {
   try {
@@ -136,10 +147,30 @@ async function handleDelete() {
           <p class="whitespace-pre-line text-sm text-gray-600">{{ plant.instructions }}</p>
         </div>
 
-        <!-- Tasks placeholder -->
-        <div class="mt-6 rounded-xl border-2 border-dashed border-gray-200 bg-white p-6 text-center">
-          <span class="text-3xl">&#128197;</span>
-          <p class="mt-2 text-sm text-gray-500">Tasks coming in Phase 3</p>
+        <!-- Tasks -->
+        <div class="mt-6">
+          <h2 class="mb-3 text-sm font-semibold text-gray-700">Tasks</h2>
+          <TaskList :tasks="tasks" :plant-id="plantId" @task-updated="refreshTasks" />
+        </div>
+
+        <!-- Schedules -->
+        <div class="mt-6">
+          <button
+            class="flex w-full items-center justify-between rounded-lg bg-white p-3 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-gray-100 transition-colors hover:bg-gray-50"
+            @click="showSchedules = !showSchedules"
+          >
+            <span>Schedules</span>
+            <svg
+              class="h-4 w-4 transform transition-transform"
+              :class="showSchedules ? 'rotate-180' : ''"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div v-if="showSchedules" class="mt-2">
+            <ScheduleEditor :plant-id="plantId" />
+          </div>
         </div>
 
         <!-- Image history -->

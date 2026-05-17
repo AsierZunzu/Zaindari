@@ -4,9 +4,9 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '../DashboardView.vue'
 
-vi.mock('../../api/plants', () => ({
-  plantsApi: {
-    list: vi.fn().mockResolvedValue([]),
+vi.mock('../../api/dashboard', () => ({
+  dashboardApi: {
+    get: vi.fn().mockResolvedValue([]),
   },
 }))
 

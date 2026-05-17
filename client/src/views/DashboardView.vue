@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { usePlantsStore } from '../stores/plants'
+import { dashboardApi } from '../api/dashboard'
+import type { DashboardPlant } from '../types'
 import PlantCard from '../components/PlantCard.vue'
 
 const auth = useAuthStore()
-const plantsStore = usePlantsStore()
+const dashboardPlants = ref<DashboardPlant[]>([])
+const loading = ref(true)
 
-onMounted(() => {
-  plantsStore.fetchPlants()
+onMounted(async () => {
+  try {
+    dashboardPlants.value = await dashboardApi.get()
+  } catch {
+    // fallback: empty list
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -19,19 +27,20 @@ onMounted(() => {
     </h1>
 
     <!-- Loading spinner -->
-    <div v-if="plantsStore.loading" class="mt-12 flex justify-center">
+    <div v-if="loading" class="mt-12 flex justify-center">
       <div class="h-10 w-10 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
     </div>
 
     <!-- Plants grid -->
     <div
-      v-else-if="plantsStore.sortedPlants.length > 0"
+      v-else-if="dashboardPlants.length > 0"
       class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
     >
       <PlantCard
-        v-for="plant in plantsStore.sortedPlants"
-        :key="plant.id"
-        :plant="plant"
+        v-for="dp in dashboardPlants"
+        :key="dp.plant.id"
+        :plant="{ ...dp.plant, currentImage: dp.currentImage }"
+        :pending-tasks="dp.pendingTasks"
       />
     </div>
 
