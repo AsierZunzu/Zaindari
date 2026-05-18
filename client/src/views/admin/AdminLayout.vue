@@ -1,11 +1,51 @@
 <script setup lang="ts">
+import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+
+const route = useRoute()
+
+const navItems = [
+  { name: 'Users', path: '/admin/users', icon: '\u{1F465}' },
+  { name: 'Config', path: '/admin/config', icon: '\u{2699}\uFE0F' },
+  { name: 'Schedules', path: '/admin/schedules', icon: '\u{1F4C5}' },
+  { name: 'OIDC', path: '/admin/oidc', icon: '\u{1F511}' },
+]
+
+const currentPath = computed(() => route.path)
 </script>
 
 <template>
-  <div class="flex items-center justify-center py-20">
-    <div class="text-center text-gray-500">
-      <span class="text-4xl">&#128736;&#65039;</span>
-      <p class="mt-2">Admin panel coming soon</p>
+  <div class="mx-auto max-w-5xl px-4 py-6">
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">Admin Panel</h1>
+      <p class="text-sm text-gray-500">Manage users, configuration, schedules, and authentication</p>
+    </div>
+
+    <div class="flex flex-col gap-6 md:flex-row">
+      <!-- Sidebar -->
+      <nav class="w-full md:w-48 shrink-0">
+        <div class="rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-100">
+          <RouterLink
+            v-for="item in navItems"
+            :key="item.path"
+            :to="item.path"
+            class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+            :class="
+              currentPath === item.path
+                ? 'bg-primary-50 text-primary-700'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+            "
+          >
+            <span>{{ item.icon }}</span>
+            <span>{{ item.name }}</span>
+          </RouterLink>
+        </div>
+      </nav>
+
+      <!-- Content -->
+      <div class="flex-1 min-w-0">
+        <RouterView />
+      </div>
     </div>
   </div>
 </template>

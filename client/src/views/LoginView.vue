@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { api } from '../api/client'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -10,6 +11,22 @@ const username = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
+const oidcLoading = ref(false)
+const oidcAvailable = ref(false)
+const oidcName = ref('SSO')
+
+onMounted(async () => {
+  // Check if OIDC is available
+  try {
+    const res = await fetch('/api/auth/oidc')
+    if (res.ok) {
+      oidcAvailable.value = true
+      // Try to get provider name from admin endpoint (won't work without auth, that's ok)
+    }
+  } catch {
+    // OIDC not available
+  }
+})
 
 async function handleSubmit() {
   error.value = ''
@@ -26,6 +43,18 @@ async function handleSubmit() {
     error.value = e instanceof Error ? e.message : 'Login failed'
   } finally {
     loading.value = false
+  }
+}
+
+async function loginWithOidc() {
+  oidcLoading.value = true
+  error.value = ''
+  try {
+    const data = await api.get<{ url: string }>('/api/auth/oidc')
+    window.location.href = data.url
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'OIDC login failed'
+    oidcLoading.value = false
   }
 }
 </script>
@@ -77,6 +106,25 @@ async function handleSubmit() {
             {{ loading ? 'Signing in...' : 'Sign In' }}
           </button>
         </form>
+
+        <!-- OIDC Login -->
+        <div v-if="oidcAvailable" class="mt-4">
+          <div class="relative my-4">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-200" />
+            </div>
+            <div class="relative flex justify-center text-xs">
+              <span class="bg-white px-2 text-gray-400">or</span>
+            </div>
+          </div>
+          <button
+            @click="loginWithOidc"
+            :disabled="oidcLoading"
+            class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+          >
+            {{ oidcLoading ? 'Redirecting...' : 'Sign in with SSO' }}
+          </button>
+        </div>
 
         <p class="mt-6 text-center text-sm text-gray-500">
           Don't have an account?

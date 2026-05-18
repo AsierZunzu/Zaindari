@@ -17,6 +17,12 @@ const router = createRouter({
       meta: { guest: true },
     },
     {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: () => import('../views/AuthCallbackView.vue'),
+      meta: { guest: true },
+    },
+    {
       path: '/',
       name: 'dashboard',
       component: () => import('../views/DashboardView.vue'),
@@ -48,9 +54,34 @@ const router = createRouter({
     },
     {
       path: '/admin',
-      name: 'admin',
       component: () => import('../views/admin/AdminLayout.vue'),
       meta: { auth: true, admin: true },
+      children: [
+        {
+          path: '',
+          redirect: '/admin/users',
+        },
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('../views/admin/UsersView.vue'),
+        },
+        {
+          path: 'config',
+          name: 'admin-config',
+          component: () => import('../views/admin/ConfigView.vue'),
+        },
+        {
+          path: 'schedules',
+          name: 'admin-schedules',
+          component: () => import('../views/admin/SchedulesView.vue'),
+        },
+        {
+          path: 'oidc',
+          name: 'admin-oidc',
+          component: () => import('../views/admin/OidcView.vue'),
+        },
+      ],
     },
   ],
 })
