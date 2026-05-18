@@ -1,0 +1,37 @@
+services:
+  zaindari:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - DATABASE_URL=postgresql://zaindari:${DB_PASSWORD:-zaindari}@postgres:5432/zaindari
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - ZAINDARI_SIGNUP_ENABLED=${ZAINDARI_SIGNUP_ENABLED:-true}
+      - ZAINDARI_VAPID_SUBJECT=${ZAINDARI_VAPID_SUBJECT:-mailto:admin@zaindari.local}
+      - TZ=${TZ:-UTC}
+      - PORT=3000
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_DB=zaindari
+      - POSTGRES_USER=zaindari
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-zaindari}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zaindari"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
