@@ -8,6 +8,9 @@ export default defineConfig({
     vue(),
     tailwindcss(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       manifest: {
         name: 'Zaindari',
@@ -20,18 +23,8 @@ export default defineConfig({
         start_url: '/',
         icons: [],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^\/api\//,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
-            },
-          },
-        ],
       },
     }),
   ],

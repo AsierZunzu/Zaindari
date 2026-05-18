@@ -1,0 +1,136 @@
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as webPush from 'web-push';
+import { PrismaService } from '../prisma/prisma.service.js';
+
+@Injectable()
+export class PushService implements OnModuleInit {
+  private readonly logger = new Logger(PushService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
+
+  async onModuleInit() {
+    const publicKey = await this.prisma.appConfig.findUnique({
+      where: { key: 'vapid_public_key' },
+    });
+    const privateKey = await this.prisma.appConfig.findUnique({
+      where: { key: 'vapid_private_key' },
+    });
+
+    if (publicKey && privateKey) {
+      this.logger.log('Using existing VAPID keys from app_config');
+      webPush.setVapidDetails(
+        this.getVapidSubject(),
+        publicKey.value,
+        privateKey.value,
+      );
+    } else {
+      this.logger.log('Generating new VAPID keys');
+      const keys = webPush.generateVAPIDKeys();
+      await this.prisma.appConfig.upsert({
+        where: { key: 'vapid_public_key' },
+        update: { value: keys.publicKey },
+        create: { key: 'vapid_public_key', value: keys.publicKey },
+      });
+      await this.prisma.appConfig.upsert({
+        where: { key: 'vapid_private_key' },
+        update: { value: keys.privateKey },
+        create: { key: 'vapid_private_key', value: keys.privateKey },
+      });
+      webPush.setVapidDetails(
+        this.getVapidSubject(),
+        keys.publicKey,
+        keys.privateKey,
+      );
+    }
+  }
+
+  private getVapidSubject(): string {
+    return (
+      this.config.get<string>('ZAINDARI_VAPID_SUBJECT') ||
+      'mailto:admin@zaindari.local'
+    );
+  }
+
+  async getVapidPublicKey(): Promise<string> {
+    const row = await this.prisma.appConfig.findUnique({
+      where: { key: 'vapid_public_key' },
+    });
+    return row?.value ?? '';
+  }
+
+  async subscribe(
+    userId: string,
+    endpoint: string,
+    p256dh: string,
+    auth: string,
+  ) {
+    await this.prisma.pushSubscription.upsert({
+      where: { endpoint },
+      update: { userId, p256dh, auth },
+      create: { userId, endpoint, p256dh, auth },
+    });
+  }
+
+  async unsubscribe(endpoint: string) {
+    await this.prisma.pushSubscription.deleteMany({
+      where: { endpoint },
+    });
+  }
+
+  async sendNotification(userId: string, payload: { title: string; body: string; url?: string }) {
+    const subscriptions = await this.prisma.pushSubscription.findMany({
+      where: { userId },
+    });
+
+    const results = await Promise.allSettled(
+      subscriptions.map(async (sub) => {
+        try {
+          await webPush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh, auth: sub.auth },
+            },
+            JSON.stringify(payload),
+          );
+        } catch (err: any) {
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            this.logger.warn(`Removing stale subscription ${sub.id}`);
+            await this.prisma.pushSubscription.delete({
+              where: { id: sub.id },
+            });
+          } else {
+            throw err;
+          }
+        }
+      }),
+    );
+
+    const failed = results.filter((r) => r.status === 'rejected');
+    if (failed.length > 0) {
+      this.logger.warn(`${failed.length} push notification(s) failed`);
+    }
+  }
+
+  async notifyPlantCollaborators(
+    plantId: string,
+    payload: { title: string; body: string; url?: string },
+  ) {
+    const plant = await this.prisma.plant.findUnique({
+      where: { id: plantId },
+      include: { shares: true },
+    });
+
+    if (!plant) return;
+
+    const userIds = [plant.ownerId, ...plant.shares.map((s) => s.userId)];
+    const uniqueUserIds = [...new Set(userIds)];
+
+    await Promise.allSettled(
+      uniqueUserIds.map((uid) => this.sendNotification(uid, payload)),
+    );
+  }
+}

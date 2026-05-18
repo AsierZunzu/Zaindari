@@ -9,6 +9,8 @@ import { PlantsModule } from './plants/plants.module.js';
 import { SchedulesModule } from './schedules/schedules.module.js';
 import { TasksModule } from './tasks/tasks.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
+import { PushModule } from './push/push.module.js';
+import { AdminModule } from './admin/admin.module.js';
 import { HealthController } from './health.controller.js';
 
 @Module({
@@ -25,6 +27,8 @@ import { HealthController } from './health.controller.js';
     SchedulesModule,
     TasksModule,
     DashboardModule,
+    PushModule,
+    AdminModule,
   ],
   controllers: [HealthController],
 })

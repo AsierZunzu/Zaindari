@@ -3,13 +3,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SchedulerService } from './scheduler.service.js';
 import { SchedulesService } from '../schedules/schedules.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PushService } from '../push/push.service.js';
 
 describe('SchedulerService', () => {
   let service: SchedulerService;
   let schedulesService: { getMergedSchedules: ReturnType<typeof vi.fn> };
+  let pushService: { notifyPlantCollaborators: ReturnType<typeof vi.fn> };
   let prisma: {
     plant: {
       findMany: ReturnType<typeof vi.fn>;
+      findUnique: ReturnType<typeof vi.fn>;
     };
     task: {
       findFirst: ReturnType<typeof vi.fn>;
@@ -31,6 +34,7 @@ describe('SchedulerService', () => {
     prisma = {
       plant: {
         findMany: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue({ name: 'Test Plant' }),
       },
       task: {
         findFirst: vi.fn(),
@@ -43,11 +47,16 @@ describe('SchedulerService', () => {
       getMergedSchedules: vi.fn().mockResolvedValue(mockSchedules),
     };
 
+    pushService = {
+      notifyPlantCollaborators: vi.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SchedulerService,
         { provide: PrismaService, useValue: prisma },
         { provide: SchedulesService, useValue: schedulesService },
+        { provide: PushService, useValue: pushService },
       ],
     }).compile();
 

@@ -1,14 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { TaskType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SchedulesService } from '../schedules/schedules.service.js';
+import { PushService } from '../push/push.service.js';
+
+const TASK_TYPE_LABELS: Record<string, { emoji: string; verb: string }> = {
+  watering: { emoji: '\uD83D\uDCA7', verb: 'water' },
+  fertilization: { emoji: '\uD83C\uDF31', verb: 'fertilize' },
+  misting: { emoji: '\uD83C\uDF2B\uFE0F', verb: 'mist' },
+  repotting: { emoji: '\uD83E\uDEb4', verb: 'repot' },
+};
 
 @Injectable()
 export class SchedulerService {
+  private readonly logger = new Logger(SchedulerService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly schedulesService: SchedulesService,
+    private readonly pushService: PushService,
   ) {}
 
   @Cron('* * * * *')
@@ -77,6 +88,7 @@ export class SchedulerService {
               dueAt,
             },
           });
+          await this.sendTaskNotification(plant.id, taskType);
           continue;
         }
 
@@ -99,9 +111,29 @@ export class SchedulerService {
                 dueAt,
               },
             });
+            await this.sendTaskNotification(plant.id, taskType);
           }
         }
       }
+    }
+  }
+
+  private async sendTaskNotification(plantId: string, taskType: TaskType) {
+    try {
+      const plant = await this.prisma.plant.findUnique({
+        where: { id: plantId },
+        select: { name: true },
+      });
+      if (!plant) return;
+
+      const label = TASK_TYPE_LABELS[taskType] || { emoji: '', verb: taskType };
+      await this.pushService.notifyPlantCollaborators(plantId, {
+        title: 'Zaindari',
+        body: `${label.emoji} Time to ${label.verb} ${plant.name}!`,
+        url: `/plants/${plantId}`,
+      });
+    } catch (err) {
+      this.logger.warn(`Failed to send push notification: ${err}`);
     }
   }
 }
