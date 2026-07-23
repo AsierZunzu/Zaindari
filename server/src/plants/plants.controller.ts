@@ -8,8 +8,10 @@ import {
   Body,
   UseGuards,
   UseInterceptors,
+  UseFilters,
   UploadedFile,
   Res,
+  BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -21,6 +23,8 @@ import { PlantsService } from './plants.service.js';
 import { ImagesService } from './images.service.js';
 import { CreatePlantDto } from './dto/create-plant.dto.js';
 import { UpdatePlantDto } from './dto/update-plant.dto.js';
+import { imageUploadOptions } from './image-upload.options.js';
+import { UploadTooLargeFilter } from './upload-too-large.filter.js';
 
 @Controller('api')
 @UseGuards(JwtAuthGuard)
@@ -78,11 +82,15 @@ export class PlantsController {
 
   @Post('plants/:id/images')
   @UseGuards(PlantAccessGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseFilters(UploadTooLargeFilter)
+  @UseInterceptors(FileInterceptor('image', imageUploadOptions))
   async uploadImage(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    if (!file) {
+      throw new BadRequestException('No image was uploaded');
+    }
     return this.imagesService.upload(id, file);
   }
 

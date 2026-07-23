@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { validateImageFile } from '../utils/image'
 
 const props = defineProps<{
   currentImageUrl?: string
@@ -11,6 +12,7 @@ const emit = defineEmits<{
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const previewUrl = ref<string | null>(null)
+const fileError = ref('')
 
 watch(
   () => props.currentImageUrl,
@@ -31,6 +33,19 @@ function handleFileChange(event: Event) {
   const file = input.files?.[0]
   if (!file) return
 
+  // Reset so re-picking the same file still fires a change event, letting the
+  // user retry after shrinking it.
+  input.value = ''
+
+  const validationError = validateImageFile(file)
+  if (validationError) {
+    // Leave any previously selected file and its preview in place -- clearing
+    // them would silently discard a good photo because of a bad second pick.
+    fileError.value = validationError
+    return
+  }
+
+  fileError.value = ''
   previewUrl.value = URL.createObjectURL(file)
   emit('file-selected', file)
 }
@@ -90,6 +105,10 @@ function handleFileChange(event: Event) {
         </svg>
       </div>
     </button>
+
+    <p v-if="fileError" class="mt-2 text-sm text-red-700">
+      {{ fileError }}
+    </p>
 
     <input
       ref="fileInput"

@@ -1,4 +1,5 @@
 import { api } from './client'
+import { validateImageFile } from '../utils/image'
 import type { Plant, PlantImage } from '../types'
 
 export interface PlantWithImage extends Plant {
@@ -31,7 +32,15 @@ export const plantsApi = {
   },
 
   async uploadImage(id: string, file: File): Promise<PlantImage> {
+    // ImageUpload.vue already rejects these at selection time; this repeats the
+    // check so no caller can start a request the server is certain to refuse.
+    const validationError = validateImageFile(file)
+    if (validationError) {
+      throw new Error(validationError)
+    }
+
     const formData = new FormData()
+    // Must match FileInterceptor('image') in the server's plants.controller.ts.
     formData.append('image', file)
 
     const token = localStorage.getItem('accessToken')
