@@ -1,14 +1,31 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useNotifications } from '../composables/useNotifications'
 
 const { isSupported, permission, isSubscribed, subscribe, unsubscribe } =
   useNotifications()
 
+const subscribing = ref(false)
+const errorMessage = ref('')
+
 async function toggleNotifications() {
-  if (isSubscribed.value) {
-    await unsubscribe()
-  } else {
-    await subscribe()
+  if (subscribing.value) return
+
+  subscribing.value = true
+  errorMessage.value = ''
+  try {
+    if (isSubscribed.value) {
+      await unsubscribe()
+    } else {
+      await subscribe()
+    }
+  } catch (err) {
+    errorMessage.value =
+      err instanceof Error
+        ? err.message
+        : 'Something went wrong. Please try again.'
+  } finally {
+    subscribing.value = false
   }
 }
 </script>
@@ -40,7 +57,8 @@ async function toggleNotifications() {
             type="button"
             role="switch"
             :aria-checked="isSubscribed"
-            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+            :disabled="subscribing"
+            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             :class="isSubscribed ? 'bg-green-600' : 'bg-gray-200'"
             @click="toggleNotifications"
           >
@@ -52,7 +70,14 @@ async function toggleNotifications() {
         </div>
 
         <div
-          v-if="permission === 'denied'"
+          v-if="errorMessage"
+          class="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700"
+        >
+          {{ errorMessage }}
+        </div>
+
+        <div
+          v-else-if="permission === 'denied'"
           class="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700"
         >
           Notifications are blocked. Please allow notifications for this site in
