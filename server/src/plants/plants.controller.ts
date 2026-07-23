@@ -13,6 +13,8 @@ import {
   Res,
   BadRequestException,
   ForbiddenException,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
@@ -68,6 +70,7 @@ export class PlantsController {
   }
 
   @Delete('plants/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(PlantAccessGuard)
   async remove(
     @Param('id') id: string,

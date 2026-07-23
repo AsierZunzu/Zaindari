@@ -59,7 +59,8 @@ class ApiClient {
           if (!retryRes.ok) {
             throw new ApiError(retryRes.status, await retryRes.text())
           }
-          return retryRes.json()
+          const retryText = await retryRes.text()
+          return (retryText ? JSON.parse(retryText) : undefined) as T
         }
       } catch {
         // refresh failed
@@ -75,11 +76,8 @@ class ApiClient {
       throw new ApiError(response.status, errorBody.message || response.statusText)
     }
 
-    if (response.status === 204) {
-      return undefined as T
-    }
-
-    return response.json()
+    const text = await response.text()
+    return (text ? JSON.parse(text) : undefined) as T
   }
 
   get<T>(url: string): Promise<T> {
