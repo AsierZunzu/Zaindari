@@ -65,7 +65,7 @@ describe('app boot', () => {
     vi.unstubAllGlobals()
   })
 
-  it('stays on the dashboard when a cached profile is present', async () => {
+  it('stays on the tasks page when a cached profile is present', async () => {
     localStorage.setItem('accessToken', 'valid-token')
     localStorage.setItem('authUser', JSON.stringify(mockUser))
     vi.stubGlobal('fetch', slowFetch(200, mockUser))
@@ -73,10 +73,10 @@ describe('app boot', () => {
     const { auth, router } = await boot()
 
     expect(auth.isAuthenticated).toBe(true)
-    expect(router.currentRoute.value.name).toBe('dashboard')
+    expect(router.currentRoute.value.name).toBe('tasks')
   })
 
-  it('stays on the dashboard when the token is valid but no profile is cached', async () => {
+  it('stays on the tasks page when the token is valid but no profile is cached', async () => {
     // The state of a session that predates the authUser cache, or an OIDC
     // login that stored only a token. The guard must wait for getMe().
     localStorage.setItem('accessToken', 'valid-token')
@@ -85,7 +85,7 @@ describe('app boot', () => {
     const { auth, router } = await boot()
 
     expect(auth.isAuthenticated).toBe(true)
-    expect(router.currentRoute.value.name).toBe('dashboard')
+    expect(router.currentRoute.value.name).toBe('tasks')
   })
 
   it('redirects to login when there is no session at all', async () => {

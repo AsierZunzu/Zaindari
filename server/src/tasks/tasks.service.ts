@@ -28,6 +28,64 @@ export class TasksService {
     });
   }
 
+  /**
+   * Every task across the plants a user owns or has been shared, within a due
+   * date window. Unlike the per-plant endpoints there is no guard to lean on,
+   * so the access rule lives in the query itself.
+   *
+   * `includeOverdue` additionally pulls in still-actionable tasks that fell due
+   * before the window: an agenda that silently hides work you already missed is
+   * worse than useless. The calendar leaves it off, because a plant you forgot
+   * in March has no business appearing in July's grid.
+   */
+  async getTasksForUser(
+    userId: string,
+    options: {
+      from?: Date;
+      to?: Date;
+      statuses?: TaskStatus[];
+      includeOverdue?: boolean;
+    } = {},
+  ) {
+    const { from, to, statuses, includeOverdue } = options;
+
+    const dueWindow =
+      from || to
+        ? {
+            dueAt: {
+              ...(from ? { gte: from } : {}),
+              ...(to ? { lte: to } : {}),
+            },
+          }
+        : {};
+
+    const overdueOutsideWindow =
+      includeOverdue && from
+        ? [
+            {
+              dueAt: { lt: from },
+              status: { in: ['pending', 'snoozed'] as TaskStatus[] },
+            },
+          ]
+        : [];
+
+    return this.prisma.task.findMany({
+      where: {
+        plant: {
+          OR: [{ ownerId: userId }, { shares: { some: { userId } } }],
+        },
+        ...(statuses?.length ? { status: { in: statuses } } : {}),
+        ...(overdueOutsideWindow.length
+          ? { OR: [dueWindow, ...overdueOutsideWindow] }
+          : dueWindow),
+      },
+      include: {
+        plant: { select: { id: true, name: true, location: true } },
+      },
+      orderBy: { dueAt: 'asc' },
+    });
+  }
+
   async complete(taskId: string, userId: string) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {

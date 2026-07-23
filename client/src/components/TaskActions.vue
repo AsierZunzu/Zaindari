@@ -5,7 +5,6 @@ import type { Task } from '../types'
 
 const props = defineProps<{
   task: Task
-  plantId: string
 }>()
 
 const emit = defineEmits<{
@@ -29,7 +28,7 @@ async function completeTask() {
   if (acting.value) return
   acting.value = true
   try {
-    const updated = await tasksApi.completeByType(props.plantId, props.task.taskType)
+    const updated = await tasksApi.complete(props.task.id)
     emit('task-updated', updated)
   } catch {
     // error handling could be enhanced

@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { TaskType, TaskStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../common/guards/auth.guard.js';
@@ -22,6 +23,22 @@ export class TasksController {
     private readonly tasksService: TasksService,
     private readonly prisma: PrismaService,
   ) {}
+
+  @Get('tasks')
+  async getTasks(
+    @CurrentUser() user: { id: string },
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('status') status?: string,
+    @Query('includeOverdue') includeOverdue?: string,
+  ) {
+    return this.tasksService.getTasksForUser(user.id, {
+      from: this.parseDate(from, 'from'),
+      to: this.parseDate(to, 'to'),
+      statuses: this.parseStatuses(status),
+      includeOverdue: includeOverdue === 'true',
+    });
+  }
 
   @Get('plants/:id/tasks')
   @UseGuards(PlantAccessGuard)
@@ -44,6 +61,15 @@ export class TasksController {
     @CurrentUser() user: { id: string },
   ) {
     return this.tasksService.completeByType(plantId, taskType, user.id);
+  }
+
+  @Post('tasks/:taskId/complete')
+  async complete(
+    @Param('taskId') taskId: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    await this.ensureTaskPlantAccess(taskId, user.id);
+    return this.tasksService.complete(taskId, user.id);
   }
 
   @Post('tasks/:taskId/undo')
@@ -73,6 +99,30 @@ export class TasksController {
   ) {
     await this.ensureTaskPlantAccess(taskId, user.id);
     return this.tasksService.skip(taskId, body, user.id);
+  }
+
+  private parseDate(value: string | undefined, param: string): Date | undefined {
+    if (!value) {
+      return undefined;
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException(`Invalid date for "${param}"`);
+    }
+    return parsed;
+  }
+
+  private parseStatuses(value?: string): TaskStatus[] | undefined {
+    if (!value) {
+      return undefined;
+    }
+    const allowed = Object.values(TaskStatus) as string[];
+    const statuses = value.split(',').map((s) => s.trim()).filter(Boolean);
+    const invalid = statuses.filter((s) => !allowed.includes(s));
+    if (invalid.length) {
+      throw new BadRequestException(`Invalid status: ${invalid.join(', ')}`);
+    }
+    return statuses as TaskStatus[];
   }
 
   private async ensureTaskPlantAccess(taskId: string, userId: string) {

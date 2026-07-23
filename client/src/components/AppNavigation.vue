@@ -45,7 +45,14 @@ function closeMenus() {
             class="rounded-md px-3 py-2 text-sm font-medium text-primary-100 transition-colors hover:bg-primary-600 hover:text-white"
             active-class="bg-primary-800 !text-white"
           >
-            Dashboard
+            Tasks
+          </RouterLink>
+          <RouterLink
+            to="/inventory"
+            class="rounded-md px-3 py-2 text-sm font-medium text-primary-100 transition-colors hover:bg-primary-600 hover:text-white"
+            active-class="bg-primary-800 !text-white"
+          >
+            Inventory
           </RouterLink>
           <RouterLink
             to="/plants/new"
@@ -124,7 +131,14 @@ function closeMenus() {
           class="block rounded-md px-3 py-2 text-base font-medium text-primary-100 hover:bg-primary-600 hover:text-white"
           @click="closeMenus"
         >
-          Dashboard
+          Tasks
+        </RouterLink>
+        <RouterLink
+          to="/inventory"
+          class="block rounded-md px-3 py-2 text-base font-medium text-primary-100 hover:bg-primary-600 hover:text-white"
+          @click="closeMenus"
+        >
+          Inventory
         </RouterLink>
         <RouterLink
           to="/plants/new"

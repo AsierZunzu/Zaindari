@@ -283,4 +283,75 @@ describe('TasksService', () => {
       vi.useRealTimers();
     });
   });
+
+  describe('getTasksForUser', () => {
+    const from = new Date('2026-07-01T00:00:00Z');
+    const to = new Date('2026-07-31T23:59:59Z');
+
+    function whereOf() {
+      return prisma.task.findMany.mock.calls[0][0].where;
+    }
+
+    it('should only match plants the user owns or has been shared', async () => {
+      prisma.task.findMany.mockResolvedValue([]);
+
+      await service.getTasksForUser('user-1');
+
+      expect(whereOf().plant).toEqual({
+        OR: [{ ownerId: 'user-1' }, { shares: { some: { userId: 'user-1' } } }],
+      });
+    });
+
+    it('should return tasks with their plant so the agenda can label them', async () => {
+      const tasks = [
+        { id: 'task-1', taskType: 'watering', plant: { id: 'plant-1', name: 'Monstera', location: 'Kitchen' } },
+      ];
+      prisma.task.findMany.mockResolvedValue(tasks);
+
+      const result = await service.getTasksForUser('user-1');
+
+      expect(result).toEqual(tasks);
+      expect(prisma.task.findMany.mock.calls[0][0]).toMatchObject({
+        include: { plant: { select: { id: true, name: true, location: true } } },
+        orderBy: { dueAt: 'asc' },
+      });
+    });
+
+    it('should constrain the due window when from and to are given', async () => {
+      prisma.task.findMany.mockResolvedValue([]);
+
+      await service.getTasksForUser('user-1', { from, to });
+
+      expect(whereOf().dueAt).toEqual({ gte: from, lte: to });
+      expect(whereOf().OR).toBeUndefined();
+    });
+
+    it('should filter by the requested statuses', async () => {
+      prisma.task.findMany.mockResolvedValue([]);
+
+      await service.getTasksForUser('user-1', { statuses: ['pending', 'done'] });
+
+      expect(whereOf().status).toEqual({ in: ['pending', 'done'] });
+    });
+
+    it('should also match still-actionable tasks before the window when includeOverdue is set', async () => {
+      prisma.task.findMany.mockResolvedValue([]);
+
+      await service.getTasksForUser('user-1', { from, to, includeOverdue: true });
+
+      expect(whereOf().OR).toEqual([
+        { dueAt: { gte: from, lte: to } },
+        { dueAt: { lt: from }, status: { in: ['pending', 'snoozed'] } },
+      ]);
+    });
+
+    it('should not widen the window for overdue tasks when includeOverdue is off', async () => {
+      prisma.task.findMany.mockResolvedValue([]);
+
+      await service.getTasksForUser('user-1', { from, to, includeOverdue: false });
+
+      expect(whereOf().OR).toBeUndefined();
+      expect(whereOf().dueAt).toEqual({ gte: from, lte: to });
+    });
+  });
 });

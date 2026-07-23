@@ -8,6 +8,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', component: { template: '<div />' } },
+    { path: '/inventory', component: { template: '<div />' } },
     { path: '/plants/new', component: { template: '<div />' } },
     { path: '/settings', component: { template: '<div />' } },
     { path: '/admin', component: { template: '<div />' } },
@@ -32,10 +33,18 @@ describe('AppNavigation', () => {
     expect(wrapper.text()).toContain('Zaindari')
   })
 
-  it('renders dashboard and add plant links', () => {
+  it('renders tasks, inventory and add plant links', () => {
     const wrapper = mountNav()
-    expect(wrapper.text()).toContain('Dashboard')
+    expect(wrapper.text()).toContain('Tasks')
+    expect(wrapper.text()).toContain('Inventory')
     expect(wrapper.text()).toContain('+ Add Plant')
+  })
+
+  it('points Tasks at the root so it stays the default page', () => {
+    const wrapper = mountNav()
+    const links = wrapper.findAll('a').map((a) => ({ to: a.attributes('href'), text: a.text() }))
+    expect(links).toContainEqual({ to: '/', text: 'Tasks' })
+    expect(links).toContainEqual({ to: '/inventory', text: 'Inventory' })
   })
 
   it('shows logout in mobile menu when opened', async () => {

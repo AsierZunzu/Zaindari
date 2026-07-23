@@ -24,8 +24,14 @@ const router = createRouter({
     },
     {
       path: '/',
-      name: 'dashboard',
-      component: () => import('../views/DashboardView.vue'),
+      name: 'tasks',
+      component: () => import('../views/TasksView.vue'),
+      meta: { auth: true },
+    },
+    {
+      path: '/inventory',
+      name: 'inventory',
+      component: () => import('../views/InventoryView.vue'),
       meta: { auth: true },
     },
     {
@@ -99,11 +105,11 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guest && auth.isAuthenticated) {
-    return { name: 'dashboard' }
+    return { name: 'tasks' }
   }
 
   if (to.meta.admin && !auth.isAdmin) {
-    return { name: 'dashboard' }
+    return { name: 'tasks' }
   }
 })
 

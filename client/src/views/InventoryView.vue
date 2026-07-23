@@ -6,12 +6,12 @@ import type { DashboardPlant } from '../types'
 import PlantCard from '../components/PlantCard.vue'
 
 const auth = useAuthStore()
-const dashboardPlants = ref<DashboardPlant[]>([])
+const plants = ref<DashboardPlant[]>([])
 const loading = ref(true)
 
 onMounted(async () => {
   try {
-    dashboardPlants.value = await dashboardApi.get()
+    plants.value = await dashboardApi.get()
   } catch {
     // fallback: empty list
   } finally {
@@ -22,9 +22,10 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">
-      Welcome back, {{ auth.user?.displayName }}!
-    </h1>
+    <h1 class="text-2xl font-bold text-gray-900">Inventory</h1>
+    <p class="mt-1 text-sm text-gray-500">
+      Every plant {{ auth.user?.displayName }} owns or has been shared.
+    </p>
 
     <!-- Loading spinner -->
     <div v-if="loading" class="mt-12 flex justify-center">
@@ -33,11 +34,11 @@ onMounted(async () => {
 
     <!-- Plants grid -->
     <div
-      v-else-if="dashboardPlants.length > 0"
+      v-else-if="plants.length > 0"
       class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
     >
       <PlantCard
-        v-for="dp in dashboardPlants"
+        v-for="dp in plants"
         :key="dp.plant.id"
         :plant="{ ...dp.plant, currentImage: dp.currentImage }"
         :pending-tasks="dp.pendingTasks"

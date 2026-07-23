@@ -6,7 +6,6 @@ import TaskActions from './TaskActions.vue'
 
 const props = defineProps<{
   tasks: Task[]
-  plantId: string
 }>()
 
 const emit = defineEmits<{
@@ -71,7 +70,7 @@ function onTaskUpdated(task: Task) {
             </span>
           </div>
           <div class="mt-2">
-            <TaskActions :task="task" :plant-id="plantId" @task-updated="onTaskUpdated" />
+            <TaskActions :task="task" @task-updated="onTaskUpdated" />
           </div>
         </div>
       </div>
@@ -107,7 +106,7 @@ function onTaskUpdated(task: Task) {
             </span>
           </div>
           <div class="mt-2">
-            <TaskActions :task="task" :plant-id="plantId" @task-updated="onTaskUpdated" />
+            <TaskActions :task="task" @task-updated="onTaskUpdated" />
           </div>
         </div>
       </div>

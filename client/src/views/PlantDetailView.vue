@@ -48,7 +48,7 @@ async function refreshTasks() {
 async function handleDelete() {
   try {
     await plantsApi.delete(plantId)
-    router.push('/')
+    router.push('/inventory')
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to delete plant'
     showDeleteConfirm.value = false
@@ -61,12 +61,12 @@ async function handleDelete() {
     <!-- Back button -->
     <button
       class="mb-4 inline-flex items-center gap-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
-      @click="router.push('/')"
+      @click="router.push('/inventory')"
     >
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
       </svg>
-      Back to dashboard
+      Back to inventory
     </button>
 
     <!-- Loading -->
@@ -151,7 +151,7 @@ async function handleDelete() {
         <!-- Tasks -->
         <div class="mt-6">
           <h2 class="mb-3 text-sm font-semibold text-gray-700">Tasks</h2>
-          <TaskList :tasks="tasks" :plant-id="plantId" @task-updated="refreshTasks" />
+          <TaskList :tasks="tasks" @task-updated="refreshTasks" />
         </div>
 
         <!-- Schedules -->

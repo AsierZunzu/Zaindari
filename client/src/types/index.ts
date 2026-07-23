@@ -39,6 +39,16 @@ export interface Task {
   skipReason: string | null
 }
 
+/** A task as returned by the cross-plant `/api/tasks` feed, which the agenda and
+ *  calendar render — they need the plant's name to label a row. */
+export interface TaskWithPlant extends Task {
+  plant: {
+    id: string
+    name: string
+    location: string | null
+  }
+}
+
 export interface Schedule {
   id: string
   taskType: TaskType
