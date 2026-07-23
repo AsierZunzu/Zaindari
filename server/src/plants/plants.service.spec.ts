@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { PlantsService } from './plants.service.js';
+import { PlantsService, toPlantWithImage } from './plants.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as fs from 'fs';
 
@@ -93,6 +93,41 @@ describe('PlantsService', () => {
       await expect(service.findById('nonexistent')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('toPlantWithImage', () => {
+    const image = {
+      id: 'image-1',
+      plantId: 'plant-1',
+      filePath: 'uploads/plant-1/image-1.jpg',
+      isCurrent: true,
+      createdAt: new Date(),
+    };
+
+    it('should flatten the current image onto currentImage', () => {
+      const result = toPlantWithImage({ ...mockPlant, images: [image] });
+
+      expect(result.currentImage).toEqual(image);
+    });
+
+    it('should report no current image as null rather than undefined', () => {
+      const result = toPlantWithImage({ ...mockPlant, images: [] });
+
+      expect(result.currentImage).toBeNull();
+    });
+
+    it('should not leak relations the query happened to include', () => {
+      const result = toPlantWithImage({
+        ...mockPlant,
+        images: [],
+        owner: { id: 'user-1', passwordHash: 'secret' },
+        shares: [{ userId: 'user-2' }],
+      } as unknown as Parameters<typeof toPlantWithImage>[0]);
+
+      expect(result).not.toHaveProperty('owner');
+      expect(result).not.toHaveProperty('shares');
+      expect(result).not.toHaveProperty('images');
     });
   });
 

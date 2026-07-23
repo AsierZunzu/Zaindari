@@ -21,7 +21,7 @@ import type { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/auth.guard.js';
 import { PlantAccessGuard } from '../common/guards/plant-access.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import { PlantsService } from './plants.service.js';
+import { PlantsService, toPlantWithImage } from './plants.service.js';
 import { ImagesService } from './images.service.js';
 import { CreatePlantDto } from './dto/create-plant.dto.js';
 import { UpdatePlantDto } from './dto/update-plant.dto.js';
@@ -38,7 +38,8 @@ export class PlantsController {
 
   @Get('plants')
   async findAll(@CurrentUser() user: { id: string }) {
-    return this.plantsService.findAllForUser(user.id);
+    const plants = await this.plantsService.findAllForUser(user.id);
+    return plants.map(toPlantWithImage);
   }
 
   @Post('plants')
@@ -52,7 +53,9 @@ export class PlantsController {
   @Get('plants/:id')
   @UseGuards(PlantAccessGuard)
   async findOne(@Param('id') id: string) {
-    return this.plantsService.findById(id);
+    // findById keeps its relations for the ownership checks below; only the
+    // response is narrowed, so nothing internal has to change.
+    return toPlantWithImage(await this.plantsService.findById(id));
   }
 
   @Patch('plants/:id')

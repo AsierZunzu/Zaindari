@@ -1,7 +1,32 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Plant, PlantImage } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as fs from 'fs';
 import * as path from 'path';
+
+/**
+ * Flattens Prisma's plant row into the shape clients actually declare
+ * (`PlantWithImage` in client/src/api/plants.ts).
+ *
+ * Two mismatches to reconcile. The current image arrives as a one-element
+ * `images` array because that is the only way to express "the current one" in
+ * an `include`, while the client expects a single `currentImage` -- read the
+ * row straight through and every `plant.currentImage` is silently undefined.
+ * And the fields are an allowlist rather than a spread so that relations and
+ * future columns cannot ride along into a response by accident.
+ */
+export function toPlantWithImage(plant: Plant & { images: PlantImage[] }) {
+  return {
+    id: plant.id,
+    name: plant.name,
+    location: plant.location,
+    instructions: plant.instructions,
+    ownerId: plant.ownerId,
+    createdAt: plant.createdAt,
+    updatedAt: plant.updatedAt,
+    currentImage: plant.images[0] ?? null,
+  };
+}
 
 @Injectable()
 export class PlantsService {
@@ -28,7 +53,6 @@ export class PlantsService {
     const plant = await this.prisma.plant.findUnique({
       where: { id },
       include: {
-        owner: true,
         shares: true,
         images: {
           where: { isCurrent: true },
