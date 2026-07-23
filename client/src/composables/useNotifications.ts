@@ -1,7 +1,10 @@
 import { ref, computed } from 'vue'
 import { pushApi } from '../api/push'
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+// Uint8Array<ArrayBuffer>, not bare Uint8Array: since TS 5.7 the bare form widens
+// to Uint8Array<ArrayBufferLike>, which PushSubscriptionOptions.applicationServerKey
+// rejects because ArrayBufferLike admits SharedArrayBuffer.
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const rawData = atob(base64)

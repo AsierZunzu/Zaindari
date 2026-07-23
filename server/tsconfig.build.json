@@ -1,4 +1,7 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+  // vitest.config.ts must be excluded: as a root-level file it widens the
+  // inferred rootDir from src/ to the project root, emitting dist/src/main.js
+  // instead of dist/main.js.
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts", "vitest.config.ts"]
 }

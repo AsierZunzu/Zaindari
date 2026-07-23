@@ -13,7 +13,6 @@ const error = ref('')
 const loading = ref(false)
 const oidcLoading = ref(false)
 const oidcAvailable = ref(false)
-const oidcName = ref('SSO')
 
 onMounted(async () => {
   // Check if OIDC is available
