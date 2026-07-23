@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import sharp from 'sharp';
+import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 
 @Injectable()
 export class ImagesService {
@@ -62,14 +63,18 @@ export class ImagesService {
     });
 
     if (!image) {
-      throw new NotFoundException('Image not found');
+      throw new NotFoundException(
+        apiError(ERROR_CODES.imageNotFound, 'Image not found'),
+      );
     }
 
     const isOwner = image.plant.ownerId === userId;
     const isShared = image.plant.shares.some((s) => s.userId === userId);
 
     if (!isOwner && !isShared) {
-      throw new ForbiddenException('You do not have access to this image');
+      throw new ForbiddenException(
+        apiError(ERROR_CODES.imageForbidden, 'You do not have access to this image'),
+      );
     }
 
     return path.join(process.cwd(), image.filePath);

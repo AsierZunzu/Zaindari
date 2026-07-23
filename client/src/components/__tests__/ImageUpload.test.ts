@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ImageUpload from '../ImageUpload.vue'
 import { MAX_IMAGE_BYTES } from '../../utils/image'
+import { createTestI18n } from '../../test/i18n'
 
 function fileOfSize(bytes: number, type = 'image/jpeg', name = 'photo.jpg') {
   const file = new File(['x'], name, { type })
@@ -26,7 +27,7 @@ describe('ImageUpload', () => {
   })
 
   it('emits file-selected for an image within the size cap', async () => {
-    const wrapper = mount(ImageUpload)
+    const wrapper = mount(ImageUpload, { global: { plugins: [createTestI18n()] } })
     await selectFile(wrapper, fileOfSize(2 * 1024 * 1024))
 
     expect(wrapper.emitted('file-selected')).toHaveLength(1)
@@ -34,7 +35,7 @@ describe('ImageUpload', () => {
   })
 
   it('rejects a file over the cap without emitting', async () => {
-    const wrapper = mount(ImageUpload)
+    const wrapper = mount(ImageUpload, { global: { plugins: [createTestI18n()] } })
     await selectFile(wrapper, fileOfSize(MAX_IMAGE_BYTES + 1))
 
     expect(wrapper.emitted('file-selected')).toBeUndefined()
@@ -42,7 +43,7 @@ describe('ImageUpload', () => {
   })
 
   it('rejects a non-image without emitting', async () => {
-    const wrapper = mount(ImageUpload)
+    const wrapper = mount(ImageUpload, { global: { plugins: [createTestI18n()] } })
     await selectFile(wrapper, fileOfSize(1024, 'application/pdf', 'notes.pdf'))
 
     expect(wrapper.emitted('file-selected')).toBeUndefined()
@@ -50,7 +51,7 @@ describe('ImageUpload', () => {
   })
 
   it('keeps an already-selected file when a later pick is invalid', async () => {
-    const wrapper = mount(ImageUpload)
+    const wrapper = mount(ImageUpload, { global: { plugins: [createTestI18n()] } })
     await selectFile(wrapper, fileOfSize(1024 * 1024))
     await selectFile(wrapper, fileOfSize(MAX_IMAGE_BYTES + 1))
 
@@ -59,7 +60,7 @@ describe('ImageUpload', () => {
   })
 
   it('clears the error once a valid file is chosen', async () => {
-    const wrapper = mount(ImageUpload)
+    const wrapper = mount(ImageUpload, { global: { plugins: [createTestI18n()] } })
     await selectFile(wrapper, fileOfSize(MAX_IMAGE_BYTES + 1))
     expect(wrapper.text()).toContain('Image must be smaller than 10 MB')
 

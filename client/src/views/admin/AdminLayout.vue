@@ -5,10 +5,10 @@ import { computed } from 'vue'
 const route = useRoute()
 
 const navItems = [
-  { name: 'Users', path: '/admin/users', icon: '\u{1F465}' },
-  { name: 'Config', path: '/admin/config', icon: '\u{2699}\uFE0F' },
-  { name: 'Schedules', path: '/admin/schedules', icon: '\u{1F4C5}' },
-  { name: 'OIDC', path: '/admin/oidc', icon: '\u{1F511}' },
+  { key: 'admin.nav.users', path: '/admin/users', icon: '\u{1F465}' },
+  { key: 'admin.nav.config', path: '/admin/config', icon: '\u{2699}\uFE0F' },
+  { key: 'admin.nav.schedules', path: '/admin/schedules', icon: '\u{1F4C5}' },
+  { key: 'admin.nav.oidc', path: '/admin/oidc', icon: '\u{1F511}' },
 ]
 
 const currentPath = computed(() => route.path)
@@ -17,8 +17,8 @@ const currentPath = computed(() => route.path)
 <template>
   <div class="mx-auto max-w-5xl px-4 py-6">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">Admin Panel</h1>
-      <p class="text-sm text-gray-500">Manage users, configuration, schedules, and authentication</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ $t('admin.title') }}</h1>
+      <p class="text-sm text-gray-500">{{ $t('admin.subtitle') }}</p>
     </div>
 
     <div class="flex flex-col gap-6 md:flex-row">
@@ -37,7 +37,7 @@ const currentPath = computed(() => route.path)
             "
           >
             <span>{{ item.icon }}</span>
-            <span>{{ item.name }}</span>
+            <span>{{ $t(item.key) }}</span>
           </RouterLink>
         </div>
       </nav>

@@ -30,4 +30,8 @@ export const authApi = {
   getMe(): Promise<User> {
     return api.get('/api/me')
   },
+
+  updateLocale(locale: string): Promise<User> {
+    return api.patch('/api/me', { locale })
+  },
 }

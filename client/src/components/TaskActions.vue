@@ -16,13 +16,17 @@ const showSkip = ref(false)
 const skipReason = ref('')
 const acting = ref(false)
 
+/**
+ * Durations, not labels: "3d" is not how every language abbreviates three days,
+ * so the label is rendered from `tasks.snoozeHours` / `tasks.snoozeDays`.
+ */
 const snoozeOptions = [
-  { label: '1h', hours: 1 },
-  { label: '6h', hours: 6 },
-  { label: '12h', hours: 12 },
-  { label: '1d', hours: 24 },
-  { label: '3d', hours: 72 },
-]
+  { hours: 1, unit: 'hours', amount: 1 },
+  { hours: 6, unit: 'hours', amount: 6 },
+  { hours: 12, unit: 'hours', amount: 12 },
+  { hours: 24, unit: 'days', amount: 1 },
+  { hours: 72, unit: 'days', amount: 3 },
+] as const
 
 async function completeTask() {
   if (acting.value) return
@@ -87,7 +91,7 @@ async function skipTask() {
     <button
       v-if="task.status === 'pending' || task.status === 'snoozed'"
       class="inline-flex items-center justify-center rounded-md bg-green-50 p-1.5 text-green-600 transition-colors hover:bg-green-100 disabled:opacity-50"
-      title="Complete"
+      :title="$t('tasks.complete')"
       :disabled="acting"
       @click="completeTask"
     >
@@ -100,7 +104,7 @@ async function skipTask() {
     <button
       v-if="task.status === 'pending' || task.status === 'snoozed'"
       class="inline-flex items-center justify-center rounded-md bg-yellow-50 p-1.5 text-yellow-600 transition-colors hover:bg-yellow-100"
-      title="Snooze"
+      :title="$t('tasks.snooze')"
       @click="showSnooze = !showSnooze; showSkip = false"
     >
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,7 +116,7 @@ async function skipTask() {
     <button
       v-if="task.status === 'pending'"
       class="inline-flex items-center justify-center rounded-md bg-gray-50 p-1.5 text-gray-500 transition-colors hover:bg-gray-100"
-      title="Skip"
+      :title="$t('tasks.skip')"
       @click="showSkip = !showSkip; showSnooze = false"
     >
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,7 +128,7 @@ async function skipTask() {
     <button
       v-if="task.status === 'done'"
       class="inline-flex items-center justify-center rounded-md bg-blue-50 p-1.5 text-blue-600 transition-colors hover:bg-blue-100 disabled:opacity-50"
-      title="Undo"
+      :title="$t('tasks.undo')"
       :disabled="acting"
       @click="undoTask"
     >
@@ -142,7 +146,7 @@ async function skipTask() {
         :disabled="acting"
         @click="snoozeTask(opt.hours)"
       >
-        {{ opt.label }}
+        {{ opt.unit === 'hours' ? $t('tasks.snoozeHours', { n: opt.amount }) : $t('tasks.snoozeDays', { n: opt.amount }) }}
       </button>
     </div>
 
@@ -151,7 +155,7 @@ async function skipTask() {
       <input
         v-model="skipReason"
         type="text"
-        placeholder="Reason for skipping..."
+        :placeholder="$t('tasks.skipReasonPlaceholder')"
         class="flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400"
         @keyup.enter="skipTask"
       />
@@ -160,7 +164,7 @@ async function skipTask() {
         :disabled="acting || !skipReason.trim()"
         @click="skipTask"
       >
-        Confirm
+        {{ $t('common.confirm') }}
       </button>
     </div>
   </div>

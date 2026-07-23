@@ -11,6 +11,8 @@ import { UsersService } from '../users/users.service.js';
 import { RefreshTokenService } from './refresh-token.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { User } from '@prisma/client';
+import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
+import { localeFromAcceptLanguage } from '../i18n/messages.js';
 
 @Injectable()
 export class AuthService {
@@ -21,15 +23,23 @@ export class AuthService {
     private readonly refreshTokenService: RefreshTokenService,
   ) {}
 
-  async register(dto: RegisterDto, userAgent?: string) {
+  async register(
+    dto: RegisterDto,
+    userAgent?: string,
+    acceptLanguage?: string,
+  ) {
     const signupEnabled = this.configService.get<boolean>('signup.enabled');
     if (!signupEnabled) {
-      throw new ForbiddenException('Signup is currently disabled');
+      throw new ForbiddenException(
+        apiError(ERROR_CODES.signupDisabled, 'Signup is currently disabled'),
+      );
     }
 
     const existing = await this.usersService.findByUsername(dto.username);
     if (existing) {
-      throw new ConflictException('Username already taken');
+      throw new ConflictException(
+        apiError(ERROR_CODES.usernameTaken, 'Username already taken'),
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
@@ -38,6 +48,9 @@ export class AuthService {
       displayName: dto.displayName,
       email: dto.email,
       passwordHash,
+      // Seeded from the browser so a new account opens in the language the
+      // user is already reading in; changeable in Settings afterwards.
+      locale: localeFromAcceptLanguage(acceptLanguage),
     });
 
     return this.buildAuthResponse(user, userAgent);
@@ -46,12 +59,16 @@ export class AuthService {
   async validateUser(username: string, password: string): Promise<User> {
     const user = await this.usersService.findByUsername(username);
     if (!user || !user.passwordHash) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(
+        apiError(ERROR_CODES.invalidCredentials, 'Invalid credentials'),
+      );
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(
+        apiError(ERROR_CODES.invalidCredentials, 'Invalid credentials'),
+      );
     }
 
     return user;

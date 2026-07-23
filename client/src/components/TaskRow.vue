@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Task, TaskWithPlant } from '../types'
-import { formatRelativeDate, formatTaskType, taskTypeEmoji, isOverdue, isDueToday } from '../utils/date'
+import { taskTypeEmoji, isOverdue, isDueToday } from '../utils/date'
+import { useTaskLabels } from '../composables/useTaskLabels'
 import TaskActions from './TaskActions.vue'
 
 const props = defineProps<{
@@ -12,6 +13,8 @@ defineEmits<{
   'task-updated': [task: Task]
 }>()
 
+const { relativeDate, taskType, taskStatus, dueTime } = useTaskLabels()
+
 function badgeClass(): string {
   if (props.task.status === 'done') return 'bg-green-100 text-green-700'
   if (props.task.status === 'skipped') return 'bg-gray-100 text-gray-600'
@@ -19,22 +22,6 @@ function badgeClass(): string {
   if (isOverdue(props.task.dueAt)) return 'bg-red-100 text-red-700'
   if (isDueToday(props.task.dueAt)) return 'bg-yellow-100 text-yellow-700'
   return 'bg-gray-100 text-gray-600'
-}
-
-function badgeLabel(): string {
-  if (props.task.status === 'done') return 'Done'
-  if (props.task.status === 'skipped') return 'Skipped'
-  if (props.task.status === 'snoozed') return 'Snoozed'
-  if (isOverdue(props.task.dueAt)) return 'Overdue'
-  if (isDueToday(props.task.dueAt)) return 'Today'
-  return 'Upcoming'
-}
-
-function dueTime(): string {
-  return new Date(props.task.dueAt).toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 /** Done and skipped tasks are struck through and dimmed. Must stay reactive:
@@ -58,7 +45,7 @@ const settled = computed(
             class="truncate text-sm font-medium text-gray-900"
             :class="settled ? 'line-through' : ''"
           >
-            {{ formatTaskType(task.taskType) }}
+            {{ taskType(task.taskType) }}
           </p>
           <RouterLink
             :to="`/plants/${task.plant.id}`"
@@ -67,7 +54,7 @@ const settled = computed(
             {{ task.plant.name }}<span v-if="task.plant.location" class="text-gray-400">
               &middot; {{ task.plant.location }}</span>
           </RouterLink>
-          <p class="text-xs text-gray-500">{{ dueTime() }} &middot; {{ formatRelativeDate(task.dueAt) }}</p>
+          <p class="text-xs text-gray-500">{{ dueTime(task.dueAt) }} &middot; {{ relativeDate(task.dueAt) }}</p>
           <p v-if="task.skipReason" class="text-xs italic text-gray-400">{{ task.skipReason }}</p>
         </div>
       </div>
@@ -75,7 +62,7 @@ const settled = computed(
         class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
         :class="badgeClass()"
       >
-        {{ badgeLabel() }}
+        {{ taskStatus(task) }}
       </span>
     </div>
     <div v-if="task.status !== 'skipped'" class="mt-2">

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { validateImageFile } from '../utils/image'
 
 const props = defineProps<{
@@ -9,6 +10,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   'file-selected': [file: File]
 }>()
+
+const { t } = useI18n()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const previewUrl = ref<string | null>(null)
@@ -41,7 +44,10 @@ function handleFileChange(event: Event) {
   if (validationError) {
     // Leave any previously selected file and its preview in place -- clearing
     // them would silently discard a good photo because of a bad second pick.
-    fileError.value = validationError
+    fileError.value = t(
+      `errors.${validationError.code}`,
+      validationError.params ?? {},
+    )
     return
   }
 
@@ -62,7 +68,7 @@ function handleFileChange(event: Event) {
         <img
           v-if="previewUrl"
           :src="previewUrl"
-          alt="Plant preview"
+          :alt="$t('plants.previewAlt')"
           class="h-full w-full object-cover"
         />
         <div v-else class="flex h-full w-full flex-col items-center justify-center text-gray-400">
@@ -80,7 +86,7 @@ function handleFileChange(event: Event) {
               d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-          <span class="text-sm font-medium">Tap to add a photo</span>
+          <span class="text-sm font-medium">{{ $t('plants.tapToAddPhoto') }}</span>
         </div>
       </div>
 

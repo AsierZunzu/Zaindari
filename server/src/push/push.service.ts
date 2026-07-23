@@ -3,6 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import * as webPush from 'web-push';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+export interface NotificationPayload {
+  title: string;
+  body: string;
+  url?: string;
+}
+
 @Injectable()
 export class PushService implements OnModuleInit {
   private readonly logger = new Logger(PushService.name);
@@ -81,7 +87,7 @@ export class PushService implements OnModuleInit {
     });
   }
 
-  async sendNotification(userId: string, payload: { title: string; body: string; url?: string }) {
+  async sendNotification(userId: string, payload: NotificationPayload) {
     const subscriptions = await this.prisma.pushSubscription.findMany({
       where: { userId },
     });
@@ -115,22 +121,38 @@ export class PushService implements OnModuleInit {
     }
   }
 
+  /**
+   * Takes a factory rather than a finished payload: a shared plant's
+   * collaborators do not necessarily read the same language, so the body has to
+   * be rendered once per recipient in their own locale.
+   */
   async notifyPlantCollaborators(
     plantId: string,
-    payload: { title: string; body: string; url?: string },
+    buildPayload: (locale: string) => NotificationPayload,
   ) {
     const plant = await this.prisma.plant.findUnique({
       where: { id: plantId },
-      include: { shares: true },
+      include: {
+        owner: { select: { id: true, locale: true } },
+        shares: { include: { user: { select: { id: true, locale: true } } } },
+      },
     });
 
     if (!plant) return;
 
-    const userIds = [plant.ownerId, ...plant.shares.map((s) => s.userId)];
-    const uniqueUserIds = [...new Set(userIds)];
+    // Map, not Set: the owner may also appear as a share, and we need one
+    // locale per distinct user.
+    const recipients = new Map<string, string>([
+      [plant.owner.id, plant.owner.locale],
+    ]);
+    for (const share of plant.shares) {
+      recipients.set(share.user.id, share.user.locale);
+    }
 
     await Promise.allSettled(
-      uniqueUserIds.map((uid) => this.sendNotification(uid, payload)),
+      [...recipients].map(([userId, locale]) =>
+        this.sendNotification(userId, buildPayload(locale)),
+      ),
     );
   }
 }

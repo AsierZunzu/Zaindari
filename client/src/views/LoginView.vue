@@ -3,9 +3,13 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { api } from '../api/client'
+import { useI18n } from 'vue-i18n'
+import { useApiError } from '../composables/useApiError'
 
 const auth = useAuthStore()
 const router = useRouter()
+const { t } = useI18n()
+const { apiErrorMessage } = useApiError()
 
 const username = ref('')
 const password = ref('')
@@ -30,7 +34,7 @@ onMounted(async () => {
 async function handleSubmit() {
   error.value = ''
   if (!username.value || !password.value) {
-    error.value = 'Please fill in all fields'
+    error.value = t('auth.fillAllFields')
     return
   }
 
@@ -39,7 +43,7 @@ async function handleSubmit() {
     await auth.login(username.value, password.value)
     router.push('/')
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Login failed'
+    error.value = apiErrorMessage(e, 'errors.auth.loginFailed')
   } finally {
     loading.value = false
   }
@@ -52,7 +56,7 @@ async function loginWithOidc() {
     const data = await api.get<{ url: string }>('/api/auth/oidc')
     window.location.href = data.url
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'OIDC login failed'
+    error.value = apiErrorMessage(e, 'errors.auth.oidcLoginFailed')
     oidcLoading.value = false
   }
 }
@@ -64,8 +68,8 @@ async function loginWithOidc() {
       <div class="rounded-xl bg-white p-8 shadow-lg">
         <div class="mb-6 text-center">
           <span class="text-5xl">&#127807;</span>
-          <h1 class="mt-2 text-2xl font-bold text-gray-900">Zaindari</h1>
-          <p class="text-sm text-gray-500">Sign in to your account</p>
+          <h1 class="mt-2 text-2xl font-bold text-gray-900">{{ $t('app.name') }}</h1>
+          <p class="text-sm text-gray-500">{{ $t('auth.signInSubtitle') }}</p>
         </div>
 
         <form @submit.prevent="handleSubmit" class="space-y-4">
@@ -74,26 +78,26 @@ async function loginWithOidc() {
           </div>
 
           <div>
-            <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+            <label for="username" class="block text-sm font-medium text-gray-700">{{ $t('auth.username') }}</label>
             <input
               id="username"
               v-model="username"
               type="text"
               autocomplete="username"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              placeholder="Enter your username"
+              :placeholder="$t('auth.usernamePlaceholder')"
             />
           </div>
 
           <div>
-            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+            <label for="password" class="block text-sm font-medium text-gray-700">{{ $t('auth.password') }}</label>
             <input
               id="password"
               v-model="password"
               type="password"
               autocomplete="current-password"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              placeholder="Enter your password"
+              :placeholder="$t('auth.passwordPlaceholder')"
             />
           </div>
 
@@ -102,7 +106,7 @@ async function loginWithOidc() {
             :disabled="loading"
             class="w-full rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
           >
-            {{ loading ? 'Signing in...' : 'Sign In' }}
+            {{ loading ? $t('auth.signingIn') : $t('auth.signIn') }}
           </button>
         </form>
 
@@ -113,7 +117,7 @@ async function loginWithOidc() {
               <div class="w-full border-t border-gray-200" />
             </div>
             <div class="relative flex justify-center text-xs">
-              <span class="bg-white px-2 text-gray-400">or</span>
+              <span class="bg-white px-2 text-gray-400">{{ $t('auth.or') }}</span>
             </div>
           </div>
           <button
@@ -121,14 +125,14 @@ async function loginWithOidc() {
             :disabled="oidcLoading"
             class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
           >
-            {{ oidcLoading ? 'Redirecting...' : 'Sign in with SSO' }}
+            {{ oidcLoading ? $t('auth.redirecting') : $t('auth.signInWithSso') }}
           </button>
         </div>
 
         <p class="mt-6 text-center text-sm text-gray-500">
-          Don't have an account?
+          {{ $t('auth.noAccount') }}
           <RouterLink to="/register" class="font-medium text-primary-600 hover:text-primary-500">
-            Sign up
+            {{ $t('auth.signUp') }}
           </RouterLink>
         </p>
       </div>

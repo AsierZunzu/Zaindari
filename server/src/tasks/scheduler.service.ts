@@ -4,12 +4,17 @@ import { TaskType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SchedulesService } from '../schedules/schedules.service.js';
 import { PushService } from '../push/push.service.js';
+import { translate } from '../i18n/messages.js';
 
-const TASK_TYPE_LABELS: Record<string, { emoji: string; verb: string }> = {
-  watering: { emoji: '\uD83D\uDCA7', verb: 'water' },
-  fertilization: { emoji: '\uD83C\uDF31', verb: 'fertilize' },
-  misting: { emoji: '\uD83C\uDF2B\uFE0F', verb: 'mist' },
-  repotting: { emoji: '\uD83E\uDEb4', verb: 'repot' },
+/**
+ * The emoji stays in code because it is the same in every language; only the
+ * sentence is translated, and as a whole sentence \u2014 see `i18n/messages.ts`.
+ */
+const TASK_TYPE_EMOJI: Record<string, string> = {
+  watering: '\uD83D\uDCA7',
+  fertilization: '\uD83C\uDF31',
+  misting: '\uD83C\uDF2B\uFE0F',
+  repotting: '\uD83E\uDEb4',
 };
 
 @Injectable()
@@ -126,12 +131,14 @@ export class SchedulerService {
       });
       if (!plant) return;
 
-      const label = TASK_TYPE_LABELS[taskType] || { emoji: '', verb: taskType };
-      await this.pushService.notifyPlantCollaborators(plantId, {
-        title: 'Zaindari',
-        body: `${label.emoji} Time to ${label.verb} ${plant.name}!`,
+      const emoji = TASK_TYPE_EMOJI[taskType] ?? '';
+      await this.pushService.notifyPlantCollaborators(plantId, (locale) => ({
+        title: translate(locale, 'push.title'),
+        body: `${emoji} ${translate(locale, `push.taskDue.${taskType}`, {
+          plant: plant.name,
+        })}`.trim(),
         url: `/plants/${plantId}`,
-      });
+      }));
     } catch (err) {
       this.logger.warn(`Failed to send push notification: ${err}`);
     }

@@ -3,7 +3,14 @@ import { ref, onMounted } from 'vue'
 import { adminApi } from '../../api/admin'
 import type { DefaultSchedule } from '../../api/admin'
 import type { TaskType } from '../../types'
-import { formatTaskType, taskTypeEmoji } from '../../utils/date'
+import { useI18n } from 'vue-i18n'
+import { taskTypeEmoji } from '../../utils/date'
+import { useTaskLabels } from '../../composables/useTaskLabels'
+import { useApiError } from '../../composables/useApiError'
+
+const { t } = useI18n()
+const { taskType: taskTypeLabel } = useTaskLabels()
+const { apiErrorMessage } = useApiError()
 
 const schedules = ref<DefaultSchedule[]>([])
 const loading = ref(true)
@@ -19,7 +26,7 @@ async function fetchSchedules() {
   try {
     schedules.value = await adminApi.getSchedules()
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load schedules'
+    error.value = apiErrorMessage(e, 'errors.schedules.loadFailed')
   } finally {
     loading.value = false
   }
@@ -36,10 +43,12 @@ async function saveSchedule(schedule: DefaultSchedule) {
       hour: schedule.hour,
       minute: schedule.minute,
     })
-    success.value = `${formatTaskType(schedule.taskType as TaskType)} schedule updated`
+    success.value = t('admin.schedules.updated', {
+      type: taskTypeLabel(schedule.taskType as TaskType),
+    })
     setTimeout(() => (success.value = ''), 3000)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to save schedule'
+    error.value = apiErrorMessage(e, 'errors.schedules.saveFailed')
   } finally {
     saving.value = null
   }
@@ -59,8 +68,8 @@ function parseTime(timeStr: string, schedule: DefaultSchedule) {
 <template>
   <div>
     <div class="mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">Default Schedules</h2>
-      <p class="text-xs text-gray-500">Default care intervals applied to new plants</p>
+      <h2 class="text-lg font-semibold text-gray-900">{{ $t('admin.schedules.title') }}</h2>
+      <p class="text-xs text-gray-500">{{ $t('admin.schedules.subtitle') }}</p>
     </div>
 
     <!-- Messages -->
@@ -83,12 +92,12 @@ function parseTime(timeStr: string, schedule: DefaultSchedule) {
           <!-- Icon + Label -->
           <div class="flex items-center gap-2 w-32">
             <span class="text-lg">{{ taskTypeEmoji(schedule.taskType as TaskType) }}</span>
-            <span class="text-sm font-medium text-gray-900">{{ formatTaskType(schedule.taskType as TaskType) }}</span>
+            <span class="text-sm font-medium text-gray-900">{{ taskTypeLabel(schedule.taskType as TaskType) }}</span>
           </div>
 
           <!-- Interval -->
           <div class="flex items-center gap-1">
-            <span class="text-xs text-gray-500">Every</span>
+            <span class="text-xs text-gray-500">{{ $t('schedules.every') }}</span>
             <input
               type="number"
               v-model.number="schedule.intervalDays"
@@ -96,12 +105,12 @@ function parseTime(timeStr: string, schedule: DefaultSchedule) {
               max="365"
               class="w-16 rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400"
             />
-            <span class="text-xs text-gray-500">days</span>
+            <span class="text-xs text-gray-500">{{ $t('schedules.days') }}</span>
           </div>
 
           <!-- Time -->
           <div class="flex items-center gap-1">
-            <span class="text-xs text-gray-500">at</span>
+            <span class="text-xs text-gray-500">{{ $t('schedules.at') }}</span>
             <input
               type="time"
               :value="formatTime(schedule.hour, schedule.minute)"
@@ -116,13 +125,13 @@ function parseTime(timeStr: string, schedule: DefaultSchedule) {
             :disabled="saving === schedule.taskType"
             class="rounded-md bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 transition-colors hover:bg-primary-100 disabled:opacity-50"
           >
-            {{ saving === schedule.taskType ? 'Saving...' : 'Save' }}
+            {{ saving === schedule.taskType ? $t('common.saving') : $t('common.save') }}
           </button>
         </div>
       </div>
 
       <div v-if="schedules.length === 0" class="rounded-xl bg-white p-8 text-center text-sm text-gray-400 shadow-sm ring-1 ring-gray-100">
-        No default schedules configured
+        {{ $t('admin.schedules.empty') }}
       </div>
     </div>
   </div>

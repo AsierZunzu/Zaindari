@@ -33,16 +33,25 @@ describe('dayKey', () => {
 })
 
 describe('dayLabel', () => {
+  // Returns a descriptor, not a string: the wording is the view layer's job
+  // (see useTaskLabels), which is what keeps this module locale-free.
   it('names the days around today', () => {
-    expect(dayLabel(new Date('2026-07-23T18:00:00'), NOW)).toBe('Today')
-    expect(dayLabel(new Date('2026-07-24T06:00:00'), NOW)).toBe('Tomorrow')
-    expect(dayLabel(new Date('2026-07-22T06:00:00'), NOW)).toBe('Yesterday')
+    expect(dayLabel(new Date('2026-07-23T18:00:00'), NOW)).toEqual({ kind: 'today' })
+    expect(dayLabel(new Date('2026-07-24T06:00:00'), NOW)).toEqual({ kind: 'tomorrow' })
+    expect(dayLabel(new Date('2026-07-22T06:00:00'), NOW)).toEqual({ kind: 'yesterday' })
   })
 
-  it('falls back to a date for anything further out', () => {
+  it('falls back to an explicit date for anything further out', () => {
     const label = dayLabel(new Date('2026-08-05T09:00:00'), NOW)
-    expect(label).not.toBe('Today')
-    expect(label).toContain('5')
+    expect(label.kind).toBe('date')
+    if (label.kind !== 'date') throw new Error('unreachable')
+    expect(label.date.getDate()).toBe(5)
+    expect(label.sameYear).toBe(true)
+  })
+
+  it('flags a date in another year, so the view can show the year', () => {
+    const label = dayLabel(new Date('2027-02-11T09:00:00'), NOW)
+    expect(label).toMatchObject({ kind: 'date', sameYear: false })
   })
 })
 

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Plant, PlantImage } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -62,7 +63,9 @@ export class PlantsService {
     });
 
     if (!plant) {
-      throw new NotFoundException('Plant not found');
+      throw new NotFoundException(
+        apiError(ERROR_CODES.plantNotFound, 'Plant not found'),
+      );
     }
 
     return plant;
@@ -82,7 +85,9 @@ export class PlantsService {
   async update(id: string, data: { name?: string; location?: string; instructions?: string }) {
     const plant = await this.prisma.plant.findUnique({ where: { id } });
     if (!plant) {
-      throw new NotFoundException('Plant not found');
+      throw new NotFoundException(
+        apiError(ERROR_CODES.plantNotFound, 'Plant not found'),
+      );
     }
 
     return this.prisma.plant.update({
@@ -94,7 +99,9 @@ export class PlantsService {
   async delete(id: string) {
     const plant = await this.prisma.plant.findUnique({ where: { id } });
     if (!plant) {
-      throw new NotFoundException('Plant not found');
+      throw new NotFoundException(
+        apiError(ERROR_CODES.plantNotFound, 'Plant not found'),
+      );
     }
 
     await this.prisma.plant.delete({ where: { id } });

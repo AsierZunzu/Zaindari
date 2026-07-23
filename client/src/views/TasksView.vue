@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { useTasksStore } from '../stores/tasks'
 import type { Task } from '../types'
@@ -13,6 +14,7 @@ const VIEW_MODE_KEY = 'tasksViewMode'
 
 const auth = useAuthStore()
 const tasksStore = useTasksStore()
+const { t } = useI18n()
 
 // Agenda is the default the app opens on; the choice sticks so someone who
 // thinks in months is not dropped back into a list on every visit.
@@ -56,12 +58,16 @@ onMounted(refresh)
   <div>
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Tasks</h1>
+        <h1 class="text-2xl font-bold text-gray-900">{{ $t('tasks.title') }}</h1>
+        <!-- One whole sentence per branch, not "task" + a conditional "s":
+             Spanish and Basque inflect the verb differently from English, so
+             the fragments cannot be reassembled per locale. -->
         <p class="mt-1 text-sm text-gray-500">
-          <template v-if="outstanding > 0">
-            {{ outstanding }} task{{ outstanding === 1 ? '' : 's' }} need{{ outstanding === 1 ? 's' : '' }} your attention, {{ auth.user?.displayName }}.
-          </template>
-          <template v-else>Nothing due right now &mdash; nice work, {{ auth.user?.displayName }}.</template>
+          {{
+            outstanding > 0
+              ? t('tasks.outstanding', { count: outstanding, name: auth.user?.displayName }, outstanding)
+              : t('tasks.allClear', { name: auth.user?.displayName })
+          }}
         </p>
       </div>
 
@@ -73,7 +79,7 @@ onMounted(refresh)
           :aria-pressed="mode === 'agenda'"
           @click="mode = 'agenda'"
         >
-          Agenda
+          {{ $t('tasks.agenda') }}
         </button>
         <button
           class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
@@ -81,7 +87,7 @@ onMounted(refresh)
           :aria-pressed="mode === 'calendar'"
           @click="mode = 'calendar'"
         >
-          Calendar
+          {{ $t('tasks.calendar') }}
         </button>
       </div>
     </div>

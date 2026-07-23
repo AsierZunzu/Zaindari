@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Task } from '../types'
-import { formatRelativeDate, formatTaskType, taskTypeEmoji, isOverdue, isDueToday } from '../utils/date'
+import { taskTypeEmoji, isOverdue, isDueToday } from '../utils/date'
+import { useTaskLabels } from '../composables/useTaskLabels'
 import TaskActions from './TaskActions.vue'
 
 const props = defineProps<{
@@ -11,6 +12,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   'task-updated': [task: Task]
 }>()
+
+const { relativeDate, taskType, taskStatus } = useTaskLabels()
 
 const groupedTasks = computed(() => {
   const pending = props.tasks.filter((t) => t.status === 'pending' || t.status === 'snoozed')
@@ -29,15 +32,6 @@ function statusBadgeClass(task: Task): string {
   return 'bg-gray-100 text-gray-600'
 }
 
-function statusLabel(task: Task): string {
-  if (task.status === 'done') return 'Done'
-  if (task.status === 'skipped') return 'Skipped'
-  if (task.status === 'snoozed') return 'Snoozed'
-  if (isOverdue(task.dueAt)) return 'Overdue'
-  if (isDueToday(task.dueAt)) return 'Today'
-  return 'Upcoming'
-}
-
 function onTaskUpdated(task: Task) {
   emit('task-updated', task)
 }
@@ -47,7 +41,7 @@ function onTaskUpdated(task: Task) {
   <div class="space-y-4">
     <!-- Pending / Active tasks -->
     <div v-if="groupedTasks.pending.length > 0">
-      <h3 class="mb-2 text-sm font-semibold text-gray-700">Pending Tasks</h3>
+      <h3 class="mb-2 text-sm font-semibold text-gray-700">{{ $t('tasks.pending') }}</h3>
       <div class="space-y-2">
         <div
           v-for="task in groupedTasks.pending"
@@ -58,15 +52,15 @@ function onTaskUpdated(task: Task) {
             <div class="flex items-center gap-2">
               <span class="text-lg">{{ taskTypeEmoji(task.taskType) }}</span>
               <div>
-                <p class="text-sm font-medium text-gray-900">{{ formatTaskType(task.taskType) }}</p>
-                <p class="text-xs text-gray-500">{{ formatRelativeDate(task.dueAt) }}</p>
+                <p class="text-sm font-medium text-gray-900">{{ taskType(task.taskType) }}</p>
+                <p class="text-xs text-gray-500">{{ relativeDate(task.dueAt) }}</p>
               </div>
             </div>
             <span
               class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
               :class="statusBadgeClass(task)"
             >
-              {{ statusLabel(task) }}
+              {{ taskStatus(task) }}
             </span>
           </div>
           <div class="mt-2">
@@ -81,12 +75,12 @@ function onTaskUpdated(task: Task) {
       v-if="groupedTasks.pending.length === 0 && groupedTasks.done.length === 0 && groupedTasks.skipped.length === 0"
       class="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center"
     >
-      <p class="text-sm text-gray-500">No tasks yet</p>
+      <p class="text-sm text-gray-500">{{ $t('tasks.none') }}</p>
     </div>
 
     <!-- Recently completed -->
     <div v-if="groupedTasks.done.length > 0">
-      <h3 class="mb-2 text-sm font-semibold text-gray-700">Recently Completed</h3>
+      <h3 class="mb-2 text-sm font-semibold text-gray-700">{{ $t('tasks.recentlyCompleted') }}</h3>
       <div class="space-y-2">
         <div
           v-for="task in groupedTasks.done"
@@ -97,12 +91,12 @@ function onTaskUpdated(task: Task) {
             <div class="flex items-center gap-2">
               <span class="text-lg">{{ taskTypeEmoji(task.taskType) }}</span>
               <div>
-                <p class="text-sm font-medium text-gray-900 line-through">{{ formatTaskType(task.taskType) }}</p>
-                <p class="text-xs text-gray-500">{{ formatRelativeDate(task.dueAt) }}</p>
+                <p class="text-sm font-medium text-gray-900 line-through">{{ taskType(task.taskType) }}</p>
+                <p class="text-xs text-gray-500">{{ relativeDate(task.dueAt) }}</p>
               </div>
             </div>
             <span class="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-              Done
+              {{ $t('taskStatus.done') }}
             </span>
           </div>
           <div class="mt-2">
@@ -114,7 +108,7 @@ function onTaskUpdated(task: Task) {
 
     <!-- Skipped -->
     <div v-if="groupedTasks.skipped.length > 0">
-      <h3 class="mb-2 text-sm font-semibold text-gray-700">Skipped</h3>
+      <h3 class="mb-2 text-sm font-semibold text-gray-700">{{ $t('tasks.skippedHeading') }}</h3>
       <div class="space-y-2">
         <div
           v-for="task in groupedTasks.skipped"
@@ -125,12 +119,12 @@ function onTaskUpdated(task: Task) {
             <div class="flex items-center gap-2">
               <span class="text-lg">{{ taskTypeEmoji(task.taskType) }}</span>
               <div>
-                <p class="text-sm font-medium text-gray-500">{{ formatTaskType(task.taskType) }}</p>
+                <p class="text-sm font-medium text-gray-500">{{ taskType(task.taskType) }}</p>
                 <p v-if="task.skipReason" class="text-xs text-gray-400 italic">{{ task.skipReason }}</p>
               </div>
             </div>
             <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-              Skipped
+              {{ $t('taskStatus.skipped') }}
             </span>
           </div>
         </div>

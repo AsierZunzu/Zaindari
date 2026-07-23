@@ -6,6 +6,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { TaskType } from '@prisma/client';
+import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 
 @Injectable()
 export class AdminService {
@@ -31,7 +32,9 @@ export class AdminService {
       where: { username: data.username },
     });
     if (existing) {
-      throw new ConflictException('Username already taken');
+      throw new ConflictException(
+        apiError(ERROR_CODES.usernameTaken, 'Username already taken'),
+      );
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);

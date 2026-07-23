@@ -18,7 +18,7 @@ export class UsersController {
   @Patch()
   async updateProfile(
     @CurrentUser() user: User,
-    @Body() body: { displayName?: string; email?: string },
+    @Body() body: { displayName?: string; email?: string; locale?: string },
   ) {
     const updated = await this.usersService.update(user.id, body);
     const { passwordHash, ...profile } = updated;

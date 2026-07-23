@@ -5,6 +5,7 @@ import { plantsApi } from '../api/plants'
 import { tasksApi } from '../api/tasks'
 import type { PlantWithImage } from '../api/plants'
 import type { PlantImage, Task } from '../types'
+import { useApiError } from '../composables/useApiError'
 import AuthedImage from '../components/AuthedImage.vue'
 import ShareDialog from '../components/ShareDialog.vue'
 import TaskList from '../components/TaskList.vue'
@@ -12,6 +13,8 @@ import ScheduleEditor from '../components/ScheduleEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
+
+const { apiErrorMessage } = useApiError()
 
 const plantId = route.params.id as string
 const plant = ref<PlantWithImage | null>(null)
@@ -35,7 +38,7 @@ onMounted(async () => {
     images.value = imageData
     tasks.value = taskData
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load plant'
+    error.value = apiErrorMessage(e, 'errors.plants.loadFailed')
   } finally {
     loading.value = false
   }
@@ -50,7 +53,7 @@ async function handleDelete() {
     await plantsApi.delete(plantId)
     router.push('/inventory')
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to delete plant'
+    error.value = apiErrorMessage(e, 'errors.plants.deleteFailed')
     showDeleteConfirm.value = false
   }
 }
@@ -66,7 +69,7 @@ async function handleDelete() {
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
       </svg>
-      Back to inventory
+      {{ $t('plants.backToInventory') }}
     </button>
 
     <!-- Loading -->
@@ -115,7 +118,7 @@ async function handleDelete() {
             <RouterLink
               :to="`/plants/${plant.id}/edit`"
               class="rounded-lg border border-gray-300 bg-white p-2 text-gray-600 shadow-sm transition-colors hover:bg-gray-50"
-              title="Edit"
+              :title="$t('common.edit')"
             >
               <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -123,7 +126,7 @@ async function handleDelete() {
             </RouterLink>
             <button
               class="rounded-lg border border-gray-300 bg-white p-2 text-gray-600 shadow-sm transition-colors hover:bg-gray-50"
-              title="Share"
+              :title="$t('plants.share')"
               @click="showShareDialog = true"
             >
               <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,7 +135,7 @@ async function handleDelete() {
             </button>
             <button
               class="rounded-lg border border-red-200 bg-white p-2 text-red-500 shadow-sm transition-colors hover:bg-red-50"
-              title="Delete"
+              :title="$t('common.delete')"
               @click="showDeleteConfirm = true"
             >
               <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,13 +147,13 @@ async function handleDelete() {
 
         <!-- Instructions -->
         <div v-if="plant.instructions" class="mt-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-          <h2 class="mb-2 text-sm font-semibold text-gray-700">Care Instructions</h2>
+          <h2 class="mb-2 text-sm font-semibold text-gray-700">{{ $t('plants.careInstructions') }}</h2>
           <p class="whitespace-pre-line text-sm text-gray-600">{{ plant.instructions }}</p>
         </div>
 
         <!-- Tasks -->
         <div class="mt-6">
-          <h2 class="mb-3 text-sm font-semibold text-gray-700">Tasks</h2>
+          <h2 class="mb-3 text-sm font-semibold text-gray-700">{{ $t('plants.tasks') }}</h2>
           <TaskList :tasks="tasks" @task-updated="refreshTasks" />
         </div>
 
@@ -160,7 +163,7 @@ async function handleDelete() {
             class="flex w-full items-center justify-between rounded-lg bg-white p-3 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-gray-100 transition-colors hover:bg-gray-50"
             @click="showSchedules = !showSchedules"
           >
-            <span>Schedules</span>
+            <span>{{ $t('plants.schedules') }}</span>
             <svg
               class="h-4 w-4 transform transition-transform"
               :class="showSchedules ? 'rotate-180' : ''"
@@ -176,7 +179,7 @@ async function handleDelete() {
 
         <!-- Image history -->
         <div v-if="images.length > 1" class="mt-6">
-          <h2 class="mb-3 text-sm font-semibold text-gray-700">Image History</h2>
+          <h2 class="mb-3 text-sm font-semibold text-gray-700">{{ $t('plants.imageHistory') }}</h2>
           <div class="grid grid-cols-4 gap-2 sm:grid-cols-6">
             <button
               v-for="img in images"
@@ -188,7 +191,7 @@ async function handleDelete() {
               <div class="aspect-square bg-primary-50">
                 <AuthedImage
                   :src="`/api/images/${img.id}`"
-                  :alt="`${plant.name} photo`"
+                  :alt="$t('plants.photoAlt', { name: plant.name })"
                   class="h-full w-full object-cover"
                 />
               </div>
@@ -212,22 +215,25 @@ async function handleDelete() {
       <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/50" @click="showDeleteConfirm = false" />
         <div class="relative w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
-          <h2 class="text-lg font-bold text-gray-900">Delete Plant</h2>
-          <p class="mt-2 text-sm text-gray-600">
-            Are you sure you want to delete <strong>{{ plant?.name }}</strong>? This action cannot be undone.
-          </p>
+          <h2 class="text-lg font-bold text-gray-900">{{ $t('plants.deleteTitle') }}</h2>
+          <!-- i18n-t, not string concatenation: the plant name sits in a
+               different position in each language, so the slot has to travel
+               with the sentence rather than be spliced around it. -->
+          <i18n-t keypath="plants.deleteConfirm" tag="p" class="mt-2 text-sm text-gray-600">
+            <template #name><strong>{{ plant?.name }}</strong></template>
+          </i18n-t>
           <div class="mt-4 flex justify-end gap-3">
             <button
               class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
               @click="showDeleteConfirm = false"
             >
-              Cancel
+              {{ $t('common.cancel') }}
             </button>
             <button
               class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-500"
               @click="handleDelete"
             >
-              Delete
+              {{ $t('common.delete') }}
             </button>
           </div>
         </div>

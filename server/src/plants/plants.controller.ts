@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 import { JwtAuthGuard } from '../common/guards/auth.guard.js';
 import { PlantAccessGuard } from '../common/guards/plant-access.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
@@ -67,7 +68,9 @@ export class PlantsController {
   ) {
     const plant = await this.plantsService.findById(id);
     if (plant.ownerId !== user.id) {
-      throw new ForbiddenException('Only the owner can update this plant');
+      throw new ForbiddenException(
+        apiError(ERROR_CODES.plantOwnerOnly, 'Only the owner can update this plant'),
+      );
     }
     return this.plantsService.update(id, dto);
   }
@@ -81,7 +84,9 @@ export class PlantsController {
   ) {
     const plant = await this.plantsService.findById(id);
     if (plant.ownerId !== user.id) {
-      throw new ForbiddenException('Only the owner can delete this plant');
+      throw new ForbiddenException(
+        apiError(ERROR_CODES.plantOwnerOnly, 'Only the owner can delete this plant'),
+      );
     }
     return this.plantsService.delete(id);
   }
@@ -95,7 +100,9 @@ export class PlantsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
-      throw new BadRequestException('No image was uploaded');
+      throw new BadRequestException(
+        apiError(ERROR_CODES.noImageUploaded, 'No image was uploaded'),
+      );
     }
     return this.imagesService.upload(id, file);
   }

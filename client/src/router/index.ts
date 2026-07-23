@@ -1,13 +1,13 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { i18n } from '../i18n'
 
 declare module 'vue-router' {
   interface RouteMeta {
-    title?: string
+    /** Key into `routes.*`; resolved at navigation time, not at definition. */
+    titleKey?: string
   }
 }
-
-const APP_NAME = 'Zaindari'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -16,60 +16,60 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),
-      meta: { guest: true, title: 'Sign In' },
+      meta: { guest: true, titleKey: 'routes.login' },
     },
     {
       path: '/register',
       name: 'register',
       component: () => import('../views/RegisterView.vue'),
-      meta: { guest: true, title: 'Sign Up' },
+      meta: { guest: true, titleKey: 'routes.register' },
     },
     {
       path: '/auth/callback',
       name: 'auth-callback',
       component: () => import('../views/AuthCallbackView.vue'),
-      meta: { guest: true, title: 'Signing In' },
+      meta: { guest: true, titleKey: 'routes.authCallback' },
     },
     {
       path: '/',
       name: 'tasks',
       component: () => import('../views/TasksView.vue'),
-      meta: { auth: true, title: 'Tasks' },
+      meta: { auth: true, titleKey: 'routes.tasks' },
     },
     {
       path: '/inventory',
       name: 'inventory',
       component: () => import('../views/InventoryView.vue'),
-      meta: { auth: true, title: 'Inventory' },
+      meta: { auth: true, titleKey: 'routes.inventory' },
     },
     {
       path: '/plants/new',
       name: 'plant-new',
       component: () => import('../views/PlantFormView.vue'),
-      meta: { auth: true, title: 'New Plant' },
+      meta: { auth: true, titleKey: 'routes.plantNew' },
     },
     {
       path: '/plants/:id',
       name: 'plant-detail',
       component: () => import('../views/PlantDetailView.vue'),
-      meta: { auth: true, title: 'Plant' },
+      meta: { auth: true, titleKey: 'routes.plantDetail' },
     },
     {
       path: '/plants/:id/edit',
       name: 'plant-edit',
       component: () => import('../views/PlantFormView.vue'),
-      meta: { auth: true, title: 'Edit Plant' },
+      meta: { auth: true, titleKey: 'routes.plantEdit' },
     },
     {
       path: '/settings',
       name: 'settings',
       component: () => import('../views/SettingsView.vue'),
-      meta: { auth: true, title: 'Settings' },
+      meta: { auth: true, titleKey: 'routes.settings' },
     },
     {
       path: '/admin',
       component: () => import('../views/admin/AdminLayout.vue'),
-      meta: { auth: true, admin: true, title: 'Admin' },
+      meta: { auth: true, admin: true, titleKey: 'routes.admin' },
       children: [
         {
           path: '',
@@ -79,25 +79,25 @@ const router = createRouter({
           path: 'users',
           name: 'admin-users',
           component: () => import('../views/admin/UsersView.vue'),
-          meta: { title: 'Admin · Users' },
+          meta: { titleKey: 'routes.adminUsers' },
         },
         {
           path: 'config',
           name: 'admin-config',
           component: () => import('../views/admin/ConfigView.vue'),
-          meta: { title: 'Admin · Config' },
+          meta: { titleKey: 'routes.adminConfig' },
         },
         {
           path: 'schedules',
           name: 'admin-schedules',
           component: () => import('../views/admin/SchedulesView.vue'),
-          meta: { title: 'Admin · Schedules' },
+          meta: { titleKey: 'routes.adminSchedules' },
         },
         {
           path: 'oidc',
           name: 'admin-oidc',
           component: () => import('../views/admin/OidcView.vue'),
-          meta: { title: 'Admin · OIDC' },
+          meta: { titleKey: 'routes.adminOidc' },
         },
       ],
     },
@@ -125,10 +125,25 @@ router.beforeEach(async (to) => {
   }
 })
 
+function applyTitle(route: RouteLocationNormalized) {
+  const { t } = i18n.global
+  const appName = t('app.name')
+  document.title = route.meta.titleKey
+    ? `${appName} - ${t(route.meta.titleKey)}`
+    : appName
+}
+
 // afterEach, not beforeEach: a guard that redirects must not leave the title of
 // a page the user never actually landed on.
-router.afterEach((to) => {
-  document.title = to.meta.title ? `${APP_NAME} - ${to.meta.title}` : APP_NAME
-})
+router.afterEach(applyTitle)
+
+/**
+ * Retitles the open tab when the language changes. Titles are only written on
+ * navigation, so without this the tab keeps the previous language's title until
+ * the user happens to navigate.
+ */
+export function refreshDocumentTitle() {
+  applyTitle(router.currentRoute.value)
+}
 
 export default router

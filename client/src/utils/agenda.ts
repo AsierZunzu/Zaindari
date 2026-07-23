@@ -8,17 +8,27 @@ import type { TaskWithPlant } from '../types'
  * day, not UTC's — a task due at 23:00 UTC is tomorrow's problem in Madrid.
  */
 
+/**
+ * How a day heading should read. Not a string: "Today" is a translation key
+ * while an explicit date is a job for `Intl`, and only the view layer knows
+ * which locale to render either one in. `composables/useTaskLabels.ts` turns
+ * this into text.
+ */
+export type DayLabel =
+  | { kind: 'today' | 'tomorrow' | 'yesterday' }
+  | { kind: 'date'; date: Date; sameYear: boolean }
+
 export interface AgendaDay {
   /** Local calendar day, `YYYY-MM-DD`. Stable key for lists and lookups. */
   key: string
   date: Date
-  label: string
+  label: DayLabel
   tasks: TaskWithPlant[]
 }
 
 export interface AgendaSection {
+  /** Doubles as the translation key suffix — see `agenda.*` in the catalogs. */
   id: 'overdue' | 'upcoming' | 'completed'
-  title: string
   days: AgendaDay[]
 }
 
@@ -52,21 +62,20 @@ export function sameDay(a: Date, b: Date): boolean {
 }
 
 /** "Today" / "Tomorrow" / "Yesterday" where it helps, an explicit date otherwise. */
-export function dayLabel(date: Date, now: Date = new Date()): string {
+export function dayLabel(date: Date, now: Date = new Date()): DayLabel {
   const today = startOfDay(now)
   const diffDays = Math.round((startOfDay(date).getTime() - today.getTime()) / 86_400_000)
 
-  if (diffDays === 0) return 'Today'
-  if (diffDays === 1) return 'Tomorrow'
-  if (diffDays === -1) return 'Yesterday'
+  if (diffDays === 0) return { kind: 'today' }
+  if (diffDays === 1) return { kind: 'tomorrow' }
+  if (diffDays === -1) return { kind: 'yesterday' }
 
-  const sameYear = date.getFullYear() === now.getFullYear()
-  return date.toLocaleDateString(undefined, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    ...(sameYear ? {} : { year: 'numeric' }),
-  })
+  // The year is only worth the space when it is not the current one.
+  return {
+    kind: 'date',
+    date,
+    sameYear: date.getFullYear() === now.getFullYear(),
+  }
 }
 
 /**
@@ -136,25 +145,13 @@ export function buildAgenda(
   const sections: AgendaSection[] = []
 
   if (overdue.length) {
-    sections.push({
-      id: 'overdue',
-      title: 'Overdue',
-      days: groupByDay(overdue, now, 'desc'),
-    })
+    sections.push({ id: 'overdue', days: groupByDay(overdue, now, 'desc') })
   }
 
-  sections.push({
-    id: 'upcoming',
-    title: 'Upcoming',
-    days: groupByDay(upcoming, now, 'asc'),
-  })
+  sections.push({ id: 'upcoming', days: groupByDay(upcoming, now, 'asc') })
 
   if (completed.length) {
-    sections.push({
-      id: 'completed',
-      title: 'Recently completed',
-      days: groupByDay(completed, now, 'desc'),
-    })
+    sections.push({ id: 'completed', days: groupByDay(completed, now, 'desc') })
   }
 
   return sections
@@ -214,10 +211,6 @@ export function buildMonthGrid(
   }
 
   return weeks
-}
-
-export function monthLabel(date: Date): string {
-  return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
 }
 
 /** Bounds of the month grid, so the feed can be fetched for exactly what's shown. */

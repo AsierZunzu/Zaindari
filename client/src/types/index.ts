@@ -4,6 +4,8 @@ export interface User {
   displayName: string
   email: string | null
   isAdmin: boolean
+  /** One of `SUPPORTED_LOCALES`; the server validates it before storing. */
+  locale: string
 }
 
 export interface Plant {

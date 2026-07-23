@@ -3,11 +3,16 @@ import { ref, onMounted } from 'vue'
 import { schedulesApi } from '../api/schedules'
 import type { MergedSchedule } from '../api/schedules'
 import type { TaskType } from '../types'
-import { formatTaskType, taskTypeEmoji } from '../utils/date'
+import { taskTypeEmoji } from '../utils/date'
+import { useTaskLabels } from '../composables/useTaskLabels'
+import { useApiError } from '../composables/useApiError'
 
 const props = defineProps<{
   plantId: string
 }>()
+
+const { taskType: taskTypeLabel } = useTaskLabels()
+const { apiErrorMessage } = useApiError()
 
 const schedules = ref<MergedSchedule[]>([])
 const loading = ref(true)
@@ -26,7 +31,7 @@ async function fetchSchedules() {
   try {
     schedules.value = await schedulesApi.getForPlant(props.plantId)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load schedules'
+    error.value = apiErrorMessage(e, 'errors.schedules.loadFailed')
   } finally {
     loading.value = false
   }
@@ -48,7 +53,7 @@ async function saveSchedule(schedule: MergedSchedule) {
     })
     await fetchSchedules()
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to save schedule'
+    error.value = apiErrorMessage(e, 'errors.schedules.saveFailed')
   } finally {
     saving.value = null
   }
@@ -62,7 +67,7 @@ async function resetToDefault(taskType: TaskType) {
     await schedulesApi.removePlantSchedule(props.plantId, taskType)
     await fetchSchedules()
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to reset schedule'
+    error.value = apiErrorMessage(e, 'errors.schedules.resetFailed')
   } finally {
     saving.value = null
   }
@@ -101,13 +106,13 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
           <!-- Icon + Label -->
           <div class="flex items-center gap-2">
             <span class="text-lg">{{ taskTypeEmoji(taskType) }}</span>
-            <span class="text-sm font-medium text-gray-900">{{ formatTaskType(taskType) }}</span>
+            <span class="text-sm font-medium text-gray-900">{{ taskTypeLabel(taskType) }}</span>
           </div>
 
           <template v-if="getSchedule(taskType)">
             <!-- Interval -->
             <div class="flex items-center gap-1">
-              <span class="text-xs text-gray-500">Every</span>
+              <span class="text-xs text-gray-500">{{ $t('schedules.every') }}</span>
               <input
                 type="number"
                 :value="getSchedule(taskType)!.intervalDays"
@@ -119,12 +124,12 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
                   sched.intervalDays = parseInt((e.target as HTMLInputElement).value) || sched.intervalDays
                 }"
               />
-              <span class="text-xs text-gray-500">days</span>
+              <span class="text-xs text-gray-500">{{ $t('schedules.days') }}</span>
             </div>
 
             <!-- Time -->
             <div class="flex items-center gap-1">
-              <span class="text-xs text-gray-500">at</span>
+              <span class="text-xs text-gray-500">{{ $t('schedules.at') }}</span>
               <input
                 type="time"
                 :value="formatTime(getSchedule(taskType)!.hour, getSchedule(taskType)!.minute)"
@@ -143,7 +148,7 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
               v-if="getSchedule(taskType)!.isOverride"
               class="rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700"
             >
-              Custom
+              {{ $t('schedules.custom') }}
             </span>
 
             <!-- Save button -->
@@ -152,7 +157,7 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
               :disabled="saving === taskType"
               @click="saveSchedule(getSchedule(taskType)!)"
             >
-              {{ saving === taskType ? 'Saving...' : 'Save' }}
+              {{ saving === taskType ? $t('common.saving') : $t('common.save') }}
             </button>
 
             <!-- Reset button -->
@@ -162,11 +167,11 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
               :disabled="saving === taskType"
               @click="resetToDefault(taskType)"
             >
-              Reset
+              {{ $t('schedules.reset') }}
             </button>
           </template>
 
-          <span v-else class="text-xs text-gray-400 italic">No schedule configured</span>
+          <span v-else class="text-xs text-gray-400 italic">{{ $t('schedules.none') }}</span>
         </div>
       </div>
     </div>

@@ -29,6 +29,7 @@ model User {
   passwordHash String?  @map("password_hash")
   oidcSubject  String?  @map("oidc_subject")
   isAdmin      Boolean  @default(false) @map("is_admin")
+  locale       String   @default("en")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import type { TaskWithPlant } from '../../types'
 import TasksView from '../TasksView.vue'
+import { createTestI18n } from '../../test/i18n'
 
 const list = vi.fn()
 
@@ -42,7 +43,7 @@ const router = createRouter({
 })
 
 function mountTasks() {
-  return mount(TasksView, { global: { plugins: [router] } })
+  return mount(TasksView, { global: { plugins: [router, createTestI18n()] } })
 }
 
 describe('TasksView', () => {

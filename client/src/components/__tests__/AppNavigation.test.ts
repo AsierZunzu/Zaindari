@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import AppNavigation from '../AppNavigation.vue'
+import { createTestI18n } from '../../test/i18n'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,7 +19,7 @@ const router = createRouter({
 function mountNav() {
   return mount(AppNavigation, {
     global: {
-      plugins: [router],
+      plugins: [router, createTestI18n()],
     },
   })
 }

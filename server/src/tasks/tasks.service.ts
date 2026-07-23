@@ -6,6 +6,7 @@ import {
 import { TaskType, TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SchedulesService } from '../schedules/schedules.service.js';
+import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 
 @Injectable()
 export class TasksService {
@@ -89,10 +90,17 @@ export class TasksService {
   async complete(taskId: string, userId: string) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
-      throw new NotFoundException('Task not found');
+      throw new NotFoundException(
+        apiError(ERROR_CODES.taskNotFound, 'Task not found'),
+      );
     }
     if (task.status !== 'pending' && task.status !== 'snoozed') {
-      throw new BadRequestException('Task must be pending or snoozed to complete');
+      throw new BadRequestException(
+        apiError(
+          ERROR_CODES.taskNotCompletable,
+          'Task must be pending or snoozed to complete',
+        ),
+      );
     }
 
     const mergedSchedules = await this.schedulesService.getMergedSchedules(task.plantId);
@@ -154,10 +162,14 @@ export class TasksService {
   async undo(taskId: string) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
-      throw new NotFoundException('Task not found');
+      throw new NotFoundException(
+        apiError(ERROR_CODES.taskNotFound, 'Task not found'),
+      );
     }
     if (task.status !== 'done') {
-      throw new BadRequestException('Only completed tasks can be undone');
+      throw new BadRequestException(
+        apiError(ERROR_CODES.taskNotUndoable, 'Only completed tasks can be undone'),
+      );
     }
 
     const updatedTask = await this.prisma.task.update({
@@ -190,7 +202,9 @@ export class TasksService {
   async snooze(taskId: string, data: { hours: number }) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
-      throw new NotFoundException('Task not found');
+      throw new NotFoundException(
+        apiError(ERROR_CODES.taskNotFound, 'Task not found'),
+      );
     }
 
     const snoozeUntil = new Date(Date.now() + data.hours * 60 * 60 * 1000);
@@ -207,7 +221,9 @@ export class TasksService {
   async skip(taskId: string, data: { reason?: string }, userId: string) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
-      throw new NotFoundException('Task not found');
+      throw new NotFoundException(
+        apiError(ERROR_CODES.taskNotFound, 'Task not found'),
+      );
     }
 
     const mergedSchedules = await this.schedulesService.getMergedSchedules(task.plantId);

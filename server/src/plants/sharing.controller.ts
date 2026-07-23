@@ -13,6 +13,7 @@ import { PlantAccessGuard } from '../common/guards/plant-access.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SharePlantDto } from './dto/share-plant.dto.js';
+import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 
 @Controller('api/plants/:id/shares')
 @UseGuards(JwtAuthGuard, PlantAccessGuard)
@@ -22,7 +23,9 @@ export class SharingController {
   private async ensureOwner(plantId: string, userId: string) {
     const plant = await this.prisma.plant.findUnique({ where: { id: plantId } });
     if (!plant || plant.ownerId !== userId) {
-      throw new ForbiddenException('Only the owner can manage shares');
+      throw new ForbiddenException(
+        apiError(ERROR_CODES.plantShareOwnerOnly, 'Only the owner can manage shares'),
+      );
     }
   }
 

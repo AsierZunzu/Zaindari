@@ -74,6 +74,7 @@ export class AuthController {
     const { refreshToken, ...response } = await this.authService.register(
       dto,
       req.headers['user-agent'],
+      req.headers['accept-language'],
     );
     this.attachSession(req, res, refreshToken);
     return response;
@@ -155,7 +156,11 @@ export class AuthController {
     const host = req.headers['x-forwarded-host'] || req.get('host');
     const redirectUri = `${protocol}://${host}/api/auth/oidc/callback`;
 
-    const result = await this.oidcService.handleCallback(code, redirectUri);
+    const result = await this.oidcService.handleCallback(
+      code,
+      redirectUri,
+      req.headers['accept-language'],
+    );
 
     const refreshToken = await this.refreshTokenService.issue(
       result.user.id,

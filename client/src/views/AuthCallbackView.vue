@@ -2,16 +2,18 @@
 import { onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const { t } = useI18n()
 const error = ref('')
 
 onMounted(async () => {
   const token = route.query.token as string | undefined
   if (!token) {
-    error.value = 'No authentication token received'
+    error.value = t('errors.auth.noToken')
     return
   }
 
@@ -23,7 +25,7 @@ onMounted(async () => {
     await auth.initialize()
     router.replace('/')
   } catch {
-    error.value = 'Failed to initialize session'
+    error.value = t('errors.auth.sessionInitFailed')
     localStorage.removeItem('accessToken')
   }
 })
@@ -39,12 +41,12 @@ onMounted(async () => {
           to="/login"
           class="mt-4 inline-block rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500"
         >
-          Back to Login
+          {{ $t('auth.backToLogin') }}
         </RouterLink>
       </div>
       <div v-else>
         <div class="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
-        <p class="mt-4 text-sm text-gray-500">Completing sign in...</p>
+        <p class="mt-4 text-sm text-gray-500">{{ $t('auth.completingSignIn') }}</p>
       </div>
     </div>
   </div>

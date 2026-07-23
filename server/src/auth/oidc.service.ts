@@ -7,6 +7,10 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
+import {
+  localeFromAcceptLanguage,
+  resolveLocale,
+} from '../i18n/messages.js';
 import type { User } from '@prisma/client';
 
 @Injectable()
@@ -56,6 +60,7 @@ export class OidcService {
   async handleCallback(
     code: string,
     redirectUri: string,
+    acceptLanguage?: string,
   ): Promise<{ accessToken: string; user: Omit<User, 'passwordHash'> }> {
     const config = await this.getOidcConfig();
     if (!config) {
@@ -102,7 +107,7 @@ export class OidcService {
         );
       }
 
-      const user = await this.findOrCreateUser(sub, userInfo);
+      const user = await this.findOrCreateUser(sub, userInfo, acceptLanguage);
       const { passwordHash, ...profile } = user;
 
       const payload = {
@@ -133,6 +138,7 @@ export class OidcService {
   async findOrCreateUser(
     oidcSubject: string,
     userInfo: Record<string, unknown>,
+    acceptLanguage?: string,
   ): Promise<User> {
     // Try to find existing user by oidcSubject
     const existing = await this.prisma.user.findFirst({
@@ -165,6 +171,11 @@ export class OidcService {
       displayName,
       email,
       oidcSubject,
+      // The `locale` claim is part of OIDC standard claims, so prefer the
+      // identity provider's answer and fall back to the browser's header.
+      locale: userInfo.locale
+        ? resolveLocale(userInfo.locale as string)
+        : localeFromAcceptLanguage(acceptLanguage),
     });
   }
 }

@@ -1,10 +1,26 @@
 class ApiError extends Error {
   status: number
+  /**
+   * Stable identifier for the errors a user reads, e.g. `auth.usernameTaken`.
+   * The server sends it alongside an English `message`; the client owns the
+   * wording so the error is in the *user's* language, not the request's.
+   * Absent for errors the server never expected anyone to read.
+   */
+  code?: string
+  /** Values the translated sentence interpolates, e.g. `{ mb: 10 }`. */
+  params?: Record<string, string | number>
 
-  constructor(status: number, message: string) {
+  constructor(
+    status: number,
+    message: string,
+    code?: string,
+    params?: Record<string, string | number>,
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.code = code
+    this.params = params
   }
 }
 
@@ -54,7 +70,7 @@ class ApiClient {
         })
 
         if (!response.ok) {
-          throw new ApiError(response.status, 'Session expired')
+          throw new ApiError(response.status, 'Session expired', 'auth.sessionExpired')
         }
 
         const data = await response.json()
@@ -93,13 +109,18 @@ class ApiClient {
     if (!window.location.pathname.startsWith('/login')) {
       window.location.href = '/login'
     }
-    throw new ApiError(401, 'Session expired')
+    throw new ApiError(401, 'Session expired', 'auth.sessionExpired')
   }
 
   private async parse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({ message: response.statusText }))
-      throw new ApiError(response.status, errorBody.message || response.statusText)
+      throw new ApiError(
+        response.status,
+        errorBody.message || response.statusText,
+        errorBody.code,
+        errorBody.params,
+      )
     }
 
     const text = await response.text()

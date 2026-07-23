@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { authApi } from '../api/auth'
 import { ApiError, NetworkError } from '../api/client'
 import { purgeApiCache } from '../sw-cache-key'
+import { isSupportedLocale, setLocale, type Locale } from '../i18n'
 import type { User, RegisterData } from '../types'
 
 const TOKEN_KEY = 'accessToken'
@@ -49,6 +50,13 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem(TOKEN_KEY, token)
     localStorage.setItem(USER_KEY, JSON.stringify(profile))
     initPromise = Promise.resolve()
+
+    // The account is the authority on language once we know who is signed in.
+    // The local copy is only ever the pre-login guess, so adopting the server's
+    // answer here is what makes the choice follow the user across devices.
+    if (isSupportedLocale(profile.locale)) {
+      setLocale(profile.locale)
+    }
   }
 
   function clearSession() {
@@ -57,6 +65,8 @@ export const useAuthStore = defineStore('auth', () => {
     offline.value = false
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
+    // The locale deliberately survives: flipping the login screen back to
+    // English the moment someone signs out would be its own small bug.
     initPromise = Promise.resolve()
     // Fire-and-forget: the service worker may still hold this account's API
     // responses, and the next person to sign in on this device must not see them.
@@ -133,6 +143,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Switches language and, when there is someone to remember it for, stores the
+   * choice on the account. Applied locally first so the UI never waits on the
+   * network, and the local value stands even if the request fails — the next
+   * successful `getMe()` is what would put the two back in step.
+   */
+  async function changeLocale(locale: Locale) {
+    setLocale(locale)
+    if (!accessToken.value) return
+
+    const profile = await authApi.updateLocale(locale)
+    user.value = profile
+    localStorage.setItem(USER_KEY, JSON.stringify(profile))
+  }
+
   /** Runs initialize() at most once per page load; safe to await repeatedly. */
   function ensureInitialized(): Promise<void> {
     initPromise ??= initialize()
@@ -150,6 +175,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     clearSession,
     refreshToken,
+    changeLocale,
     initialize,
     ensureInitialized,
   }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { plantsApi } from '../api/plants'
+import { useApiError } from '../composables/useApiError'
 
 const props = defineProps<{
   plantId: string
@@ -10,6 +11,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
 }>()
+
+const { apiErrorMessage } = useApiError()
 
 const shares = ref<Array<{ userId: string; username: string; displayName: string }>>([])
 const userIdInput = ref('')
@@ -32,7 +35,7 @@ async function loadShares() {
   try {
     shares.value = await plantsApi.getShares(props.plantId)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load shares'
+    error.value = apiErrorMessage(e, 'errors.plants.loadSharesFailed')
   } finally {
     loading.value = false
   }
@@ -46,7 +49,7 @@ async function addShare() {
     userIdInput.value = ''
     await loadShares()
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to share'
+    error.value = apiErrorMessage(e, 'errors.plants.shareFailed')
   }
 }
 
@@ -55,7 +58,7 @@ async function removeShare(userId: string) {
     await plantsApi.unshare(props.plantId, userId)
     shares.value = shares.value.filter((s) => s.userId !== userId)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to remove share'
+    error.value = apiErrorMessage(e, 'errors.plants.removeShareFailed')
   }
 }
 </script>
@@ -69,7 +72,7 @@ async function removeShare(userId: string) {
       <!-- Dialog -->
       <div class="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
         <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-lg font-bold text-gray-900">Share Plant</h2>
+          <h2 class="text-lg font-bold text-gray-900">{{ $t('plants.shareTitle') }}</h2>
           <button
             class="rounded-md p-1 text-gray-400 hover:text-gray-600"
             @click="emit('close')"
@@ -89,21 +92,21 @@ async function removeShare(userId: string) {
           <input
             v-model="userIdInput"
             type="text"
-            placeholder="Enter user ID"
+            :placeholder="$t('plants.userIdPlaceholder')"
             class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
           <button
             type="submit"
             class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-500"
           >
-            Share
+            {{ $t('plants.share') }}
           </button>
         </form>
 
         <!-- Current shares -->
-        <div v-if="loading" class="py-4 text-center text-sm text-gray-500">Loading...</div>
+        <div v-if="loading" class="py-4 text-center text-sm text-gray-500">{{ $t('common.loading') }}</div>
         <div v-else-if="shares.length === 0" class="py-4 text-center text-sm text-gray-500">
-          Not shared with anyone yet.
+          {{ $t('plants.notSharedYet') }}
         </div>
         <ul v-else class="space-y-2">
           <li

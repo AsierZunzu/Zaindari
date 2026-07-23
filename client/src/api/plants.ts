@@ -1,4 +1,4 @@
-import { api } from './client'
+import { api, ApiError } from './client'
 import { validateImageFile } from '../utils/image'
 import type { Plant, PlantImage } from '../types'
 
@@ -36,7 +36,14 @@ export const plantsApi = {
     // check so no caller can start a request the server is certain to refuse.
     const validationError = validateImageFile(file)
     if (validationError) {
-      throw new Error(validationError)
+      // An ApiError, not a plain Error: it carries the code, so the catch site
+      // renders the same sentence it would for the server's own rejection.
+      throw new ApiError(
+        400,
+        `Image rejected: ${validationError.code}`,
+        validationError.code,
+        validationError.params,
+      )
     }
 
     const formData = new FormData()

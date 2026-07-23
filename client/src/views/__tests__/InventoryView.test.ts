@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import InventoryView from '../InventoryView.vue'
+import { createTestI18n } from '../../test/i18n'
 
 vi.mock('../../api/dashboard', () => ({
   dashboardApi: {
@@ -23,7 +24,7 @@ const router = createRouter({
 function mountInventory() {
   return mount(InventoryView, {
     global: {
-      plugins: [router],
+      plugins: [router, createTestI18n()],
     },
   })
 }

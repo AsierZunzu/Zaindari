@@ -1,4 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable, NotFoundException } from '@nestjs/common';
+import { apiError, ERROR_CODES } from '../errors/api-error.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 @Injectable()
@@ -20,7 +21,9 @@ export class PlantAccessGuard implements CanActivate {
     });
 
     if (!plant) {
-      throw new NotFoundException('Plant not found');
+      throw new NotFoundException(
+        apiError(ERROR_CODES.plantNotFound, 'Plant not found'),
+      );
     }
 
     const isOwner = plant.ownerId === userId;

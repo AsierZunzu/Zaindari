@@ -7,11 +7,11 @@ import {
   dayKey,
   dayLabel,
   isActive,
-  monthLabel,
   sameDay,
   startOfDay,
   type CalendarCell,
 } from '../utils/agenda'
+import { useTaskLabels } from '../composables/useTaskLabels'
 import TaskRow from './TaskRow.vue'
 
 const props = defineProps<{
@@ -24,7 +24,11 @@ const emit = defineEmits<{
   'task-updated': [task: Task]
 }>()
 
-const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const { dayHeading, monthHeading, weekdayNames } = useTaskLabels()
+
+// Derived from the locale rather than hardcoded. The grid stays Monday-first
+// (correct for en/es/eu); only the names change.
+const weekdays = computed(() => weekdayNames())
 const selectedKey = ref(dayKey(new Date()))
 
 const weeks = computed(() => buildMonthGrid(props.month, props.tasks))
@@ -90,7 +94,7 @@ function cellClass(cell: CalendarCell): string {
     <div class="flex items-center justify-between">
       <button
         class="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100"
-        aria-label="Previous month"
+        :aria-label="$t('tasks.previousMonth')"
         @click="shiftMonth(-1)"
       >
         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,17 +102,17 @@ function cellClass(cell: CalendarCell): string {
         </svg>
       </button>
       <div class="flex items-center gap-2">
-        <h2 class="text-sm font-semibold text-gray-900">{{ monthLabel(month) }}</h2>
+        <h2 class="text-sm font-semibold text-gray-900">{{ monthHeading(month) }}</h2>
         <button
           class="rounded-md px-2 py-1 text-xs font-medium text-primary-700 transition-colors hover:bg-primary-50"
           @click="goToToday"
         >
-          Today
+          {{ $t('common.today') }}
         </button>
       </div>
       <button
         class="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100"
-        aria-label="Next month"
+        :aria-label="$t('tasks.nextMonth')"
         @click="shiftMonth(1)"
       >
         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +152,7 @@ function cellClass(cell: CalendarCell): string {
     <!-- Selected day -->
     <div v-if="selectedCell" class="mt-4">
       <h3 class="mb-2 text-xs font-semibold text-gray-500">
-        {{ dayLabel(selectedCell.date) }}
+        {{ dayHeading(dayLabel(selectedCell.date)) }}
       </h3>
       <div v-if="selectedCell.tasks.length > 0" class="space-y-2">
         <TaskRow
@@ -159,7 +163,7 @@ function cellClass(cell: CalendarCell): string {
         />
       </div>
       <div v-else class="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center">
-        <p class="text-sm text-gray-500">Nothing due on this day.</p>
+        <p class="text-sm text-gray-500">{{ $t('tasks.nothingDueOnDay') }}</p>
       </div>
     </div>
   </div>

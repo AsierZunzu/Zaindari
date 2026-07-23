@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { adminApi } from '../../api/admin'
+import { useApiError } from '../../composables/useApiError'
 import type { AppConfigEntry } from '../../api/admin'
+
+const { t } = useI18n()
+const { apiErrorMessage } = useApiError()
 
 const entries = ref<AppConfigEntry[]>([])
 const loading = ref(true)
@@ -28,7 +33,7 @@ async function fetchConfig() {
       editValues.value[entry.key] = entry.value
     }
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load config'
+    error.value = apiErrorMessage(e, 'errors.admin.loadConfigFailed')
   } finally {
     loading.value = false
   }
@@ -44,10 +49,10 @@ async function saveAll() {
     for (const entry of entries.value) {
       editValues.value[entry.key] = entry.value
     }
-    success.value = 'Configuration saved'
+    success.value = t('admin.config.saved')
     setTimeout(() => (success.value = ''), 3000)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to save config'
+    error.value = apiErrorMessage(e, 'errors.admin.saveConfigFailed')
   } finally {
     saving.value = false
   }
@@ -73,8 +78,8 @@ function removeEntry(key: string) {
 <template>
   <div>
     <div class="mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">App Configuration</h2>
-      <p class="text-xs text-gray-500">Key-value configuration entries</p>
+      <h2 class="text-lg font-semibold text-gray-900">{{ $t('admin.config.title') }}</h2>
+      <p class="text-xs text-gray-500">{{ $t('admin.config.subtitle') }}</p>
     </div>
 
     <!-- Messages -->
@@ -90,7 +95,7 @@ function removeEntry(key: string) {
       <!-- Existing entries -->
       <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
         <div v-if="Object.keys(editValues).length === 0" class="text-center text-sm text-gray-400 py-4">
-          No configuration entries yet
+          {{ $t('admin.config.empty') }}
         </div>
         <div v-else class="space-y-3">
           <div v-for="key in Object.keys(editValues)" :key="key" class="flex items-center gap-3">
@@ -106,7 +111,7 @@ function removeEntry(key: string) {
               @click="removeEntry(key)"
               class="text-xs font-medium text-red-500 hover:text-red-700"
             >
-              Remove
+              {{ $t('common.remove') }}
             </button>
           </div>
         </div>
@@ -117,31 +122,31 @@ function removeEntry(key: string) {
             :disabled="saving"
             class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-500 disabled:opacity-50"
           >
-            {{ saving ? 'Saving...' : 'Save Changes' }}
+            {{ saving ? $t('common.saving') : $t('common.saveChanges') }}
           </button>
         </div>
       </div>
 
       <!-- Add new entry -->
       <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-        <h3 class="mb-3 text-sm font-semibold text-gray-900">Add New Entry</h3>
+        <h3 class="mb-3 text-sm font-semibold text-gray-900">{{ $t('admin.config.addHeading') }}</h3>
         <form @submit.prevent="addEntry" class="flex items-end gap-3">
           <div class="flex-1">
-            <label class="block text-xs font-medium text-gray-700">Key</label>
+            <label class="block text-xs font-medium text-gray-700">{{ $t('admin.config.key') }}</label>
             <input
               v-model="newKey"
               type="text"
               required
-              placeholder="config.key"
+              :placeholder="$t('admin.config.keyPlaceholder')"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
           </div>
           <div class="flex-1">
-            <label class="block text-xs font-medium text-gray-700">Value</label>
+            <label class="block text-xs font-medium text-gray-700">{{ $t('admin.config.value') }}</label>
             <input
               v-model="newValue"
               type="text"
-              placeholder="value"
+              :placeholder="$t('admin.config.valuePlaceholder')"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
           </div>
@@ -149,7 +154,7 @@ function removeEntry(key: string) {
             type="submit"
             class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
           >
-            Add
+            {{ $t('common.add') }}
           </button>
         </form>
       </div>

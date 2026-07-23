@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import type { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface.js';
+import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
@@ -26,7 +27,12 @@ export const imageUploadOptions: MulterOptions = {
     if (!file.mimetype?.startsWith('image/')) {
       // transformException passes HttpExceptions through untouched, so this
       // surfaces as a 400 rather than being remapped to a 500.
-      cb(new BadRequestException('Only image files can be uploaded'), false);
+      cb(
+        new BadRequestException(
+          apiError(ERROR_CODES.invalidImage, 'Only image files can be uploaded'),
+        ),
+        false,
+      );
       return;
     }
     cb(null, true);

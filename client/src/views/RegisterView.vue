@@ -2,9 +2,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useI18n } from 'vue-i18n'
+import { useApiError } from '../composables/useApiError'
 
 const auth = useAuthStore()
 const router = useRouter()
+const { t } = useI18n()
+const { apiErrorMessage } = useApiError()
 
 const username = ref('')
 const displayName = ref('')
@@ -18,19 +22,19 @@ async function handleSubmit() {
   error.value = ''
 
   if (!username.value || !displayName.value || !password.value) {
-    error.value = 'Please fill in all required fields'
+    error.value = t('auth.fillRequiredFields')
     return
   }
   if (username.value.length < 3) {
-    error.value = 'Username must be at least 3 characters'
+    error.value = t('auth.usernameTooShort')
     return
   }
   if (password.value.length < 8) {
-    error.value = 'Password must be at least 8 characters'
+    error.value = t('auth.passwordTooShort')
     return
   }
   if (password.value !== confirmPassword.value) {
-    error.value = 'Passwords do not match'
+    error.value = t('auth.passwordsDoNotMatch')
     return
   }
 
@@ -44,7 +48,7 @@ async function handleSubmit() {
     })
     router.push('/')
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Registration failed'
+    error.value = apiErrorMessage(e, 'errors.auth.registrationFailed')
   } finally {
     loading.value = false
   }
@@ -57,8 +61,8 @@ async function handleSubmit() {
       <div class="rounded-xl bg-white p-8 shadow-lg">
         <div class="mb-6 text-center">
           <span class="text-5xl">&#127807;</span>
-          <h1 class="mt-2 text-2xl font-bold text-gray-900">Create Account</h1>
-          <p class="text-sm text-gray-500">Join Zaindari to manage your plants</p>
+          <h1 class="mt-2 text-2xl font-bold text-gray-900">{{ $t('auth.createAccount') }}</h1>
+          <p class="text-sm text-gray-500">{{ $t('auth.createAccountSubtitle') }}</p>
         </div>
 
         <form @submit.prevent="handleSubmit" class="space-y-4">
@@ -67,62 +71,62 @@ async function handleSubmit() {
           </div>
 
           <div>
-            <label for="username" class="block text-sm font-medium text-gray-700">Username *</label>
+            <label for="username" class="block text-sm font-medium text-gray-700">{{ $t('auth.username') }} *</label>
             <input
               id="username"
               v-model="username"
               type="text"
               autocomplete="username"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              placeholder="At least 3 characters"
+              :placeholder="$t('auth.usernameHint')"
             />
           </div>
 
           <div>
-            <label for="displayName" class="block text-sm font-medium text-gray-700">Display Name *</label>
+            <label for="displayName" class="block text-sm font-medium text-gray-700">{{ $t('auth.displayName') }} *</label>
             <input
               id="displayName"
               v-model="displayName"
               type="text"
               autocomplete="name"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              placeholder="How you want to be called"
+              :placeholder="$t('auth.displayNameHint')"
             />
           </div>
 
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+            <label for="email" class="block text-sm font-medium text-gray-700">{{ $t('auth.email') }}</label>
             <input
               id="email"
               v-model="email"
               type="email"
               autocomplete="email"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              placeholder="Optional"
+              :placeholder="$t('auth.emailHint')"
             />
           </div>
 
           <div>
-            <label for="password" class="block text-sm font-medium text-gray-700">Password *</label>
+            <label for="password" class="block text-sm font-medium text-gray-700">{{ $t('auth.password') }} *</label>
             <input
               id="password"
               v-model="password"
               type="password"
               autocomplete="new-password"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              placeholder="At least 8 characters"
+              :placeholder="$t('auth.passwordHint')"
             />
           </div>
 
           <div>
-            <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password *</label>
+            <label for="confirmPassword" class="block text-sm font-medium text-gray-700">{{ $t('auth.confirmPassword') }} *</label>
             <input
               id="confirmPassword"
               v-model="confirmPassword"
               type="password"
               autocomplete="new-password"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              placeholder="Repeat your password"
+              :placeholder="$t('auth.confirmPasswordHint')"
             />
           </div>
 
@@ -131,14 +135,14 @@ async function handleSubmit() {
             :disabled="loading"
             class="w-full rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
           >
-            {{ loading ? 'Creating account...' : 'Create Account' }}
+            {{ loading ? $t('auth.creatingAccount') : $t('auth.createAccount') }}
           </button>
         </form>
 
         <p class="mt-6 text-center text-sm text-gray-500">
-          Already have an account?
+          {{ $t('auth.haveAccount') }}
           <RouterLink to="/login" class="font-medium text-primary-600 hover:text-primary-500">
-            Sign in
+            {{ $t('auth.signIn') }}
           </RouterLink>
         </p>
       </div>

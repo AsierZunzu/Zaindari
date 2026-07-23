@@ -6,6 +6,7 @@ import {
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 import type { Response } from 'express';
 import { MAX_IMAGE_MB } from './image-upload.options.js';
+import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 
 /**
  * Multer aborts an oversized upload with LIMIT_FILE_SIZE, which Nest's
@@ -18,7 +19,11 @@ export class UploadTooLargeFilter implements ExceptionFilter {
   catch(_exception: PayloadTooLargeException, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse<Response>();
     const body = new BadRequestException(
-      `Image must be smaller than ${MAX_IMAGE_MB} MB`,
+      apiError(
+        ERROR_CODES.imageTooLarge,
+        `Image must be smaller than ${MAX_IMAGE_MB} MB`,
+        { mb: MAX_IMAGE_MB },
+      ),
     ).getResponse();
 
     response.status(400).json(body);

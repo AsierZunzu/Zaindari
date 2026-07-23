@@ -35,7 +35,7 @@ function closeMenus() {
         <!-- Brand -->
         <RouterLink to="/" class="flex items-center gap-2 text-xl font-bold text-white" @click="closeMenus">
           <span class="text-2xl">&#127807;</span>
-          <span>Zaindari</span>
+          <span>{{ $t('app.name') }}</span>
         </RouterLink>
 
         <!-- Desktop nav -->
@@ -45,26 +45,27 @@ function closeMenus() {
             class="rounded-md px-3 py-2 text-sm font-medium text-primary-100 transition-colors hover:bg-primary-600 hover:text-white"
             active-class="bg-primary-800 !text-white"
           >
-            Tasks
+            {{ $t('nav.tasks') }}
           </RouterLink>
           <RouterLink
             to="/inventory"
             class="rounded-md px-3 py-2 text-sm font-medium text-primary-100 transition-colors hover:bg-primary-600 hover:text-white"
             active-class="bg-primary-800 !text-white"
           >
-            Inventory
+            {{ $t('nav.inventory') }}
           </RouterLink>
           <RouterLink
             to="/plants/new"
             class="rounded-md bg-primary-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-400"
           >
-            + Add Plant
+            {{ $t('nav.addPlant') }}
           </RouterLink>
 
           <!-- User dropdown -->
           <div class="relative">
             <button
               class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-primary-100 transition-colors hover:bg-primary-600"
+              :aria-label="$t('nav.accountMenu')"
               @click="toggleUserMenu"
             >
               <span class="flex h-7 w-7 items-center justify-center rounded-full bg-primary-500 text-xs font-bold text-white">
@@ -82,7 +83,7 @@ function closeMenus() {
                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 @click="closeMenus"
               >
-                Settings
+                {{ $t('nav.settings') }}
               </RouterLink>
               <RouterLink
                 v-if="auth.isAdmin"
@@ -90,13 +91,13 @@ function closeMenus() {
                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 @click="closeMenus"
               >
-                Admin Panel
+                {{ $t('nav.adminPanel') }}
               </RouterLink>
               <button
                 class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
                 @click="logout"
               >
-                Logout
+                {{ $t('nav.logout') }}
               </button>
             </div>
           </div>
@@ -105,6 +106,7 @@ function closeMenus() {
         <!-- Mobile hamburger -->
         <button
           class="rounded-md p-2 text-primary-100 hover:bg-primary-600 md:hidden"
+          :aria-label="$t('nav.toggleMenu')"
           @click="toggleMobileMenu"
         >
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,28 +133,28 @@ function closeMenus() {
           class="block rounded-md px-3 py-2 text-base font-medium text-primary-100 hover:bg-primary-600 hover:text-white"
           @click="closeMenus"
         >
-          Tasks
+          {{ $t('nav.tasks') }}
         </RouterLink>
         <RouterLink
           to="/inventory"
           class="block rounded-md px-3 py-2 text-base font-medium text-primary-100 hover:bg-primary-600 hover:text-white"
           @click="closeMenus"
         >
-          Inventory
+          {{ $t('nav.inventory') }}
         </RouterLink>
         <RouterLink
           to="/plants/new"
           class="block rounded-md px-3 py-2 text-base font-medium text-primary-100 hover:bg-primary-600 hover:text-white"
           @click="closeMenus"
         >
-          + Add Plant
+          {{ $t('nav.addPlant') }}
         </RouterLink>
         <RouterLink
           to="/settings"
           class="block rounded-md px-3 py-2 text-base font-medium text-primary-100 hover:bg-primary-600 hover:text-white"
           @click="closeMenus"
         >
-          Settings
+          {{ $t('nav.settings') }}
         </RouterLink>
         <RouterLink
           v-if="auth.isAdmin"
@@ -160,13 +162,13 @@ function closeMenus() {
           class="block rounded-md px-3 py-2 text-base font-medium text-primary-100 hover:bg-primary-600 hover:text-white"
           @click="closeMenus"
         >
-          Admin Panel
+          {{ $t('nav.adminPanel') }}
         </RouterLink>
         <button
           class="block w-full rounded-md px-3 py-2 text-left text-base font-medium text-primary-100 hover:bg-primary-600 hover:text-white"
           @click="logout"
         >
-          Logout
+          {{ $t('nav.logout') }}
         </button>
       </div>
     </div>

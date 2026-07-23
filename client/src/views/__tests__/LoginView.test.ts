@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../LoginView.vue'
+import { createTestI18n } from '../../test/i18n'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -16,7 +17,7 @@ const router = createRouter({
 function mountLogin() {
   return mount(LoginView, {
     global: {
-      plugins: [router],
+      plugins: [router, createTestI18n()],
     },
   })
 }

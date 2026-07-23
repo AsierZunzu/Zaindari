@@ -2,11 +2,19 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import { i18n, resolveInitialLocale, setLocale } from './i18n'
 import { useAuthStore } from './stores/auth'
 import './style.css'
 
 const app = createApp(App)
 const pinia = createPinia()
+
+// First, and before anything renders: the browser's language is read here, so
+// the login screen's very first paint is already in the right language rather
+// than flashing English. Also before the router, whose afterEach hook
+// translates the page title and needs the catalogs installed.
+app.use(i18n)
+setLocale(resolveInitialLocale())
 
 app.use(pinia)
 app.use(router)

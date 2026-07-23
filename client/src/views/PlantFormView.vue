@@ -2,10 +2,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { plantsApi } from '../api/plants'
+import { useI18n } from 'vue-i18n'
+import { useApiError } from '../composables/useApiError'
 import ImageUpload from '../components/ImageUpload.vue'
 
 const route = useRoute()
 const router = useRouter()
+
+const { t } = useI18n()
+const { apiErrorMessage } = useApiError()
 
 const plantId = computed(() => route.params.id as string | undefined)
 const isEditing = computed(() => !!plantId.value)
@@ -31,7 +36,7 @@ onMounted(async () => {
         currentImageUrl.value = `/api/images/${plant.currentImage.id}`
       }
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : 'Failed to load plant'
+      error.value = apiErrorMessage(e, 'errors.plants.loadFailed')
     } finally {
       fetchLoading.value = false
     }
@@ -45,7 +50,7 @@ function handleFileSelected(file: File) {
 async function handleSubmit() {
   error.value = ''
   if (!name.value.trim()) {
-    error.value = 'Plant name is required'
+    error.value = t('plants.nameRequired')
     return
   }
 
@@ -72,7 +77,7 @@ async function handleSubmit() {
 
     router.push(`/plants/${id}`)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to save plant'
+    error.value = apiErrorMessage(e, 'errors.plants.saveFailed')
   } finally {
     loading.value = false
   }
@@ -82,7 +87,7 @@ async function handleSubmit() {
 <template>
   <div class="mx-auto max-w-lg">
     <h1 class="text-2xl font-bold text-gray-900">
-      {{ isEditing ? 'Edit Plant' : 'Add New Plant' }}
+      {{ isEditing ? $t('plants.edit') : $t('plants.addNew') }}
     </h1>
 
     <div v-if="fetchLoading" class="mt-12 flex justify-center">
@@ -96,7 +101,7 @@ async function handleSubmit() {
 
       <!-- Image upload -->
       <div>
-        <label class="mb-2 block text-sm font-medium text-gray-700">Photo</label>
+        <label class="mb-2 block text-sm font-medium text-gray-700">{{ $t('plants.photo') }}</label>
         <ImageUpload
           :current-image-url="currentImageUrl"
           @file-selected="handleFileSelected"
@@ -105,38 +110,38 @@ async function handleSubmit() {
 
       <!-- Name -->
       <div>
-        <label for="plant-name" class="block text-sm font-medium text-gray-700">Name</label>
+        <label for="plant-name" class="block text-sm font-medium text-gray-700">{{ $t('plants.name') }}</label>
         <input
           id="plant-name"
           v-model="name"
           type="text"
           required
           class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          placeholder="My plant"
+          :placeholder="$t('plants.namePlaceholder')"
         />
       </div>
 
       <!-- Location -->
       <div>
-        <label for="plant-location" class="block text-sm font-medium text-gray-700">Location</label>
+        <label for="plant-location" class="block text-sm font-medium text-gray-700">{{ $t('plants.location') }}</label>
         <input
           id="plant-location"
           v-model="location"
           type="text"
           class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          placeholder="e.g., Living room"
+          :placeholder="$t('plants.locationPlaceholder')"
         />
       </div>
 
       <!-- Instructions -->
       <div>
-        <label for="plant-instructions" class="block text-sm font-medium text-gray-700">Instructions</label>
+        <label for="plant-instructions" class="block text-sm font-medium text-gray-700">{{ $t('plants.instructions') }}</label>
         <textarea
           id="plant-instructions"
           v-model="instructions"
           rows="3"
           class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          placeholder="Care notes, tips..."
+          :placeholder="$t('plants.instructionsPlaceholder')"
         />
       </div>
 
@@ -147,14 +152,14 @@ async function handleSubmit() {
           :disabled="loading"
           class="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
         >
-          {{ loading ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Plant' }}
+          {{ loading ? $t('common.saving') : isEditing ? $t('common.saveChanges') : $t('plants.addPlant') }}
         </button>
         <button
           type="button"
           class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
           @click="router.back()"
         >
-          Cancel
+          {{ $t('common.cancel') }}
         </button>
       </div>
     </form>

@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { adminApi } from '../../api/admin'
+import { useApiError } from '../../composables/useApiError'
 import type { OidcConfig, OidcConfigInput } from '../../api/admin'
+
+const { t } = useI18n()
+const { apiErrorMessage } = useApiError()
 
 const config = ref<OidcConfig | null>(null)
 const loading = ref(true)
@@ -86,17 +91,17 @@ async function saveConfig() {
     config.value = await adminApi.upsertOidcConfig(data)
     form.value.clientSecret = ''
     isEditing.value = false
-    success.value = 'OIDC configuration saved'
+    success.value = t('admin.oidc.saved')
     setTimeout(() => (success.value = ''), 3000)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to save OIDC config'
+    error.value = apiErrorMessage(e, 'errors.admin.saveOidcFailed')
   } finally {
     saving.value = false
   }
 }
 
 async function deleteConfig() {
-  if (!confirm('Delete OIDC configuration? Users will no longer be able to sign in with OIDC.')) return
+  if (!confirm(t('admin.oidc.deleteConfirm'))) return
   error.value = ''
   success.value = ''
   try {
@@ -104,10 +109,10 @@ async function deleteConfig() {
     config.value = null
     form.value = { name: '', issuerUrl: '', clientId: '', clientSecret: '', enabled: true }
     isEditing.value = false
-    success.value = 'OIDC configuration deleted'
+    success.value = t('admin.oidc.deleted')
     setTimeout(() => (success.value = ''), 3000)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to delete OIDC config'
+    error.value = apiErrorMessage(e, 'errors.admin.deleteOidcFailed')
   }
 }
 </script>
@@ -115,8 +120,8 @@ async function deleteConfig() {
 <template>
   <div>
     <div class="mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">OIDC Configuration</h2>
-      <p class="text-xs text-gray-500">Configure OpenID Connect single sign-on</p>
+      <h2 class="text-lg font-semibold text-gray-900">{{ $t('admin.oidc.title') }}</h2>
+      <p class="text-xs text-gray-500">{{ $t('admin.oidc.subtitle') }}</p>
     </div>
 
     <!-- Messages -->
@@ -132,12 +137,12 @@ async function deleteConfig() {
       <!-- No config, show setup prompt -->
       <div v-if="!config && !isEditing" class="text-center py-6">
         <div class="text-3xl mb-2">&#128273;</div>
-        <p class="text-sm text-gray-500 mb-4">No OIDC provider configured</p>
+        <p class="text-sm text-gray-500 mb-4">{{ $t('admin.oidc.empty') }}</p>
         <button
           @click="startEdit"
           class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-500"
         >
-          Configure OIDC
+          {{ $t('admin.oidc.configure') }}
         </button>
       </div>
 
@@ -145,28 +150,28 @@ async function deleteConfig() {
       <div v-else-if="config && !isEditing">
         <div class="space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-gray-700">Provider Name</span>
+            <span class="text-sm font-medium text-gray-700">{{ $t('admin.oidc.providerName') }}</span>
             <span class="text-sm text-gray-900">{{ config.name }}</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-gray-700">Issuer URL</span>
+            <span class="text-sm font-medium text-gray-700">{{ $t('admin.oidc.issuerUrl') }}</span>
             <span class="text-sm text-gray-900 truncate max-w-xs" :title="config.issuerUrl">{{ config.issuerUrl }}</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-gray-700">Client ID</span>
+            <span class="text-sm font-medium text-gray-700">{{ $t('admin.oidc.clientId') }}</span>
             <span class="text-sm text-gray-900 truncate max-w-xs">{{ config.clientId }}</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-gray-700">Client Secret</span>
+            <span class="text-sm font-medium text-gray-700">{{ $t('admin.oidc.clientSecret') }}</span>
             <span class="text-sm text-gray-500">{{ config.clientSecret }}</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-gray-700">Status</span>
+            <span class="text-sm font-medium text-gray-700">{{ $t('admin.oidc.status') }}</span>
             <span
               :class="config.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
               class="rounded-full px-2 py-0.5 text-xs font-medium"
             >
-              {{ config.enabled ? 'Enabled' : 'Disabled' }}
+              {{ config.enabled ? $t('admin.oidc.enabled') : $t('admin.oidc.disabled') }}
             </span>
           </div>
         </div>
@@ -175,13 +180,13 @@ async function deleteConfig() {
             @click="startEdit"
             class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-500"
           >
-            Edit
+            {{ $t('common.edit') }}
           </button>
           <button
             @click="deleteConfig"
             class="rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
           >
-            Delete
+            {{ $t('common.delete') }}
           </button>
         </div>
       </div>
@@ -190,38 +195,39 @@ async function deleteConfig() {
       <div v-else>
         <form @submit.prevent="saveConfig" class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-gray-700">Provider Name</label>
+            <label class="block text-xs font-medium text-gray-700">{{ $t('admin.oidc.providerName') }}</label>
             <input
               v-model="form.name"
               type="text"
               required
-              placeholder="e.g. Authentik, Keycloak, Google"
+              :placeholder="$t('admin.oidc.providerNamePlaceholder')"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-700">Issuer URL</label>
+            <label class="block text-xs font-medium text-gray-700">{{ $t('admin.oidc.issuerUrl') }}</label>
             <input
               v-model="form.issuerUrl"
               type="url"
               required
-              placeholder="https://auth.example.com/realms/main"
+              :placeholder="$t('admin.oidc.issuerUrlPlaceholder')"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-700">Client ID</label>
+            <label class="block text-xs font-medium text-gray-700">{{ $t('admin.oidc.clientId') }}</label>
             <input
               v-model="form.clientId"
               type="text"
               required
-              placeholder="zaindari"
+              :placeholder="$t('admin.oidc.clientIdPlaceholder')"
               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-700">
-              Client Secret {{ config ? '(leave blank to keep current)' : '' }}
+              {{ $t('admin.oidc.clientSecret') }}
+              {{ config ? $t('admin.oidc.clientSecretKeepCurrent') : '' }}
             </label>
             <input
               v-model="form.clientSecret"
@@ -237,7 +243,7 @@ async function deleteConfig() {
               id="oidcEnabled"
               class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
             />
-            <label for="oidcEnabled" class="text-sm text-gray-700">Enabled</label>
+            <label for="oidcEnabled" class="text-sm text-gray-700">{{ $t('admin.oidc.enabled') }}</label>
           </div>
           <div class="flex gap-2 pt-2">
             <button
@@ -245,14 +251,14 @@ async function deleteConfig() {
               :disabled="saving"
               class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-500 disabled:opacity-50"
             >
-              {{ saving ? 'Saving...' : 'Save' }}
+              {{ saving ? $t('common.saving') : $t('common.save') }}
             </button>
             <button
               type="button"
               @click="cancelEdit"
               class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
             >
-              Cancel
+              {{ $t('common.cancel') }}
             </button>
           </div>
         </form>

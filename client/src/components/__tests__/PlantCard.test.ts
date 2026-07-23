@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import PlantCard from '../PlantCard.vue'
 import { api } from '../../api/client'
 import type { PlantWithImage } from '../../api/plants'
+import { createTestI18n } from '../../test/i18n'
 
 // Images are pulled through the api client so the request carries the
 // Authorization header an <img> tag cannot; jsdom provides neither.
@@ -38,7 +39,7 @@ function makePlant(overrides: Partial<PlantWithImage> = {}): PlantWithImage {
 function mountCard(plant: PlantWithImage) {
   return mount(PlantCard, {
     props: { plant },
-    global: { plugins: [router] },
+    global: { plugins: [router, createTestI18n()] },
   })
 }
 

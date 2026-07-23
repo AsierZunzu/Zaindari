@@ -1,16 +1,35 @@
-import type { TaskType } from '../types'
+import type { Task, TaskType } from '../types'
 
-export function formatRelativeDate(date: string): string {
+/**
+ * These helpers stay pure and locale-agnostic on purpose: they answer
+ * "*what* should this say?", not "*how* does that read in Basque?". They return
+ * a translation key (plus whatever the sentence needs to interpolate) and
+ * `composables/useTaskLabels.ts` renders it.
+ *
+ * The alternative — passing `t` in — would make every one of them untestable
+ * without an i18n instance, and would scatter wording decisions across files
+ * that are really about dates.
+ */
+
+export interface MessageRef {
+  key: string
+  /** Plural count, when the message has singular/plural forms. */
+  count?: number
+}
+
+/** "Due today" / "Overdue by 3 days" / … as a key, not as English. */
+export function relativeDateMessage(date: string): MessageRef {
   const now = new Date()
   const due = new Date(date)
   const diffMs = due.getTime() - now.getTime()
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffDays < -1) return `Overdue by ${Math.abs(diffDays)} days`
-  if (diffDays === -1) return 'Overdue by 1 day'
-  if (diffDays === 0) return 'Due today'
-  if (diffDays === 1) return 'Due tomorrow'
-  return `Due in ${diffDays} days`
+  if (diffDays < 0) {
+    return { key: 'date.overdueByDays', count: Math.abs(diffDays) }
+  }
+  if (diffDays === 0) return { key: 'date.dueToday' }
+  if (diffDays === 1) return { key: 'date.dueTomorrow' }
+  return { key: 'date.dueInDays', count: diffDays }
 }
 
 export function isOverdue(date: string): boolean {
@@ -29,16 +48,24 @@ export function isDueToday(date: string): boolean {
   )
 }
 
-export function formatTaskType(type: TaskType): string {
-  const labels: Record<TaskType, string> = {
-    watering: 'Watering',
-    fertilization: 'Fertilization',
-    misting: 'Misting',
-    repotting: 'Repotting',
-  }
-  return labels[type]
+export function taskTypeKey(type: TaskType): string {
+  return `taskType.${type}`
 }
 
+/**
+ * The badge a task shows. `pending` has no badge of its own — what the user
+ * cares about is whether it is late, due today, or still ahead.
+ */
+export function taskStatusKey(task: Pick<Task, 'status' | 'dueAt'>): string {
+  if (task.status === 'done') return 'taskStatus.done'
+  if (task.status === 'skipped') return 'taskStatus.skipped'
+  if (task.status === 'snoozed') return 'taskStatus.snoozed'
+  if (isOverdue(task.dueAt)) return 'taskStatus.overdue'
+  if (isDueToday(task.dueAt)) return 'taskStatus.today'
+  return 'taskStatus.upcoming'
+}
+
+/** Emoji are the same in every language, so this one stays a plain lookup. */
 export function taskTypeEmoji(type: TaskType): string {
   const emojis: Record<TaskType, string> = {
     watering: '\u{1F4A7}',
