@@ -6,6 +6,9 @@ services:
     environment:
       - DATABASE_URL=postgresql://zaindari:${DB_PASSWORD:-zaindari}@postgres:5432/zaindari
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-15m}
+      - JWT_REFRESH_EXPIRATION_DAYS=${JWT_REFRESH_EXPIRATION_DAYS:-30}
+      - ZAINDARI_COOKIE_SECURE=${ZAINDARI_COOKIE_SECURE:-auto}
       - ZAINDARI_SIGNUP_ENABLED=${ZAINDARI_SIGNUP_ENABLED:-true}
       - ZAINDARI_VAPID_SUBJECT=${ZAINDARI_VAPID_SUBJECT:-mailto:admin@zaindari.local}
       - TZ=${TZ:-UTC}

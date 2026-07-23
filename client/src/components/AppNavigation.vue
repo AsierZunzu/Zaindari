@@ -8,8 +8,8 @@ const router = useRouter()
 const mobileMenuOpen = ref(false)
 const userMenuOpen = ref(false)
 
-function logout() {
-  auth.logout()
+async function logout() {
+  await auth.logout()
   router.push('/login')
 }
 

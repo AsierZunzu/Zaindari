@@ -6,6 +6,7 @@ import { UnauthorizedException, ConflictException, ForbiddenException } from '@n
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service.js';
 import { UsersService } from '../users/users.service.js';
+import { RefreshTokenService } from './refresh-token.service.js';
 
 vi.mock('bcrypt', () => ({
   hash: vi.fn(),
@@ -17,6 +18,12 @@ describe('AuthService', () => {
   let usersService: { findByUsername: ReturnType<typeof vi.fn>; findById: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
   let jwtService: { sign: ReturnType<typeof vi.fn> };
   let configService: { get: ReturnType<typeof vi.fn> };
+  let refreshTokenService: {
+    issue: ReturnType<typeof vi.fn>;
+    rotate: ReturnType<typeof vi.fn>;
+    revoke: ReturnType<typeof vi.fn>;
+    revokeAllForUser: ReturnType<typeof vi.fn>;
+  };
 
   const mockUser = {
     id: 'user-1',
@@ -52,12 +59,22 @@ describe('AuthService', () => {
       }),
     };
 
+    refreshTokenService = {
+      issue: vi.fn().mockResolvedValue('refresh-token'),
+      rotate: vi
+        .fn()
+        .mockResolvedValue({ userId: 'user-1', refreshToken: 'rotated-token' }),
+      revoke: vi.fn(),
+      revokeAllForUser: vi.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: UsersService, useValue: usersService },
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useValue: configService },
+        { provide: RefreshTokenService, useValue: refreshTokenService },
       ],
     }).compile();
 
@@ -146,19 +163,49 @@ describe('AuthService', () => {
   });
 
   describe('refresh', () => {
-    it('should return new access token', async () => {
+    it('should return a new access token and a rotated refresh token', async () => {
       usersService.findById.mockResolvedValue(mockUser);
 
-      const result = await authService.refresh('user-1');
+      const result = await authService.refresh('raw-refresh-token');
+
+      expect(refreshTokenService.rotate).toHaveBeenCalledWith(
+        'raw-refresh-token',
+        undefined,
+      );
       expect(result.accessToken).toBe('jwt-token');
+      expect(result.refreshToken).toBe('rotated-token');
     });
 
-    it('should throw if user not found', async () => {
+    it('should throw and revoke the session if the user no longer exists', async () => {
       usersService.findById.mockResolvedValue(null);
 
-      await expect(authService.refresh('unknown')).rejects.toThrow(
+      await expect(authService.refresh('raw-refresh-token')).rejects.toThrow(
         UnauthorizedException,
       );
+      expect(refreshTokenService.revokeAllForUser).toHaveBeenCalledWith('user-1');
+    });
+
+    it('should propagate rejection of an invalid refresh token', async () => {
+      refreshTokenService.rotate.mockRejectedValue(
+        new UnauthorizedException('Invalid refresh token'),
+      );
+
+      await expect(authService.refresh('bogus')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(usersService.findById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('logout', () => {
+    it('should revoke the presented refresh token', async () => {
+      await authService.logout('raw-refresh-token');
+      expect(refreshTokenService.revoke).toHaveBeenCalledWith('raw-refresh-token');
+    });
+
+    it('should be a no-op when no token is presented', async () => {
+      await authService.logout(undefined);
+      expect(refreshTokenService.revoke).not.toHaveBeenCalled();
     });
   });
 });

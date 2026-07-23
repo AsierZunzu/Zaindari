@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
@@ -16,7 +17,14 @@ async function bootstrap() {
     }),
   );
 
-  app.enableCors();
+  // Required to read the httpOnly refresh cookie.
+  app.use(cookieParser());
+
+  // Trust the reverse proxy so req.protocol / x-forwarded-proto correctly
+  // decides whether the refresh cookie is marked Secure.
+  app.set('trust proxy', 1);
+
+  app.enableCors({ credentials: true, origin: true });
 
   // Serve uploaded images
   app.useStaticAssets(join(process.cwd(), 'uploads'), {

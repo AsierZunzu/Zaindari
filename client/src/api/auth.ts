@@ -23,6 +23,10 @@ export const authApi = {
     return api.post('/api/auth/refresh')
   },
 
+  logout(): Promise<void> {
+    return api.post('/api/auth/logout')
+  },
+
   getMe(): Promise<User> {
     return api.get('/api/me')
   },

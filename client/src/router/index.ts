@@ -86,8 +86,13 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
+
+  // vue-router begins the initial navigation during app.use(router), while the
+  // session is still being validated. Without waiting, a perfectly valid
+  // session looks logged-out and every reload lands on /login.
+  await auth.ensureInitialized()
 
   if (to.meta.auth && !auth.isAuthenticated) {
     return { name: 'login' }

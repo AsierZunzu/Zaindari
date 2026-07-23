@@ -11,7 +11,9 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
+// The router guard awaits this same promise, so the first navigation resolves
+// against a settled session rather than racing it.
 const auth = useAuthStore()
-auth.initialize().then(() => {
+auth.ensureInitialized().then(() => {
   app.mount('#app')
 })
