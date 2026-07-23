@@ -106,11 +106,16 @@ class ApiClient {
     return (text ? JSON.parse(text) : undefined) as T
   }
 
-  async request<T>(method: string, url: string, body?: unknown): Promise<T> {
+  /**
+   * Sends a request, transparently recovering from a 401 via the refresh
+   * cookie. Hands back the raw Response so callers can decode it as JSON or as
+   * binary without duplicating the session-recovery dance.
+   */
+  private async fetchAuthed(method: string, url: string, body?: unknown): Promise<Response> {
     const response = await this.sendRequest(method, url, body)
 
     if (response.status !== 401) {
-      return this.parse<T>(response)
+      return response
     }
 
     // Attempt recovery via the refresh cookie. Worth trying even with no access
@@ -131,7 +136,27 @@ class ApiClient {
       this.endSession()
     }
 
-    return this.parse<T>(retry)
+    return retry
+  }
+
+  async request<T>(method: string, url: string, body?: unknown): Promise<T> {
+    return this.parse<T>(await this.fetchAuthed(method, url, body))
+  }
+
+  /**
+   * Fetches a binary resource as a Blob. Exists because a browser-issued
+   * subresource load -- an `<img src>`, say -- carries no Authorization header,
+   * so guarded endpoints have to be read through the client and handed to the
+   * element as an object URL instead.
+   */
+  async getBlob(url: string): Promise<Blob> {
+    const response = await this.fetchAuthed('GET', url)
+
+    if (!response.ok) {
+      throw new ApiError(response.status, response.statusText)
+    }
+
+    return response.blob()
   }
 
   get<T>(url: string): Promise<T> {

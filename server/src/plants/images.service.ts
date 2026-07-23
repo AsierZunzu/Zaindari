@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
@@ -46,13 +50,26 @@ export class ImagesService {
     });
   }
 
-  async serve(imageId: string) {
+  /**
+   * Resolves an image to an on-disk path, but only for a user who may see the
+   * plant it belongs to. The route has no `:id` plant param, so PlantAccessGuard
+   * cannot cover it -- the same owner-or-shared rule is applied here instead.
+   */
+  async serve(imageId: string, userId: string) {
     const image = await this.prisma.plantImage.findUnique({
       where: { id: imageId },
+      include: { plant: { include: { shares: true } } },
     });
 
     if (!image) {
       throw new NotFoundException('Image not found');
+    }
+
+    const isOwner = image.plant.ownerId === userId;
+    const isShared = image.plant.shares.some((s) => s.userId === userId);
+
+    if (!isOwner && !isShared) {
+      throw new ForbiddenException('You do not have access to this image');
     }
 
     return path.join(process.cwd(), image.filePath);

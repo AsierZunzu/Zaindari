@@ -106,9 +106,10 @@ export class PlantsController {
   @Get('images/:imageId')
   async serveImage(
     @Param('imageId') imageId: string,
+    @CurrentUser() user: { id: string },
     @Res() res: Response,
   ) {
-    const filePath = await this.imagesService.serve(imageId);
+    const filePath = await this.imagesService.serve(imageId, user.id);
     res.sendFile(filePath);
   }
 }

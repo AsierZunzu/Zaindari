@@ -2,6 +2,7 @@
 import type { PlantWithImage } from '../api/plants'
 import type { Task } from '../types'
 import { taskTypeEmoji, isOverdue, isDueToday } from '../utils/date'
+import AuthedImage from './AuthedImage.vue'
 
 defineProps<{
   plant: PlantWithImage
@@ -15,7 +16,7 @@ defineProps<{
     class="block overflow-hidden rounded-xl bg-white shadow-md transition-shadow hover:shadow-lg"
   >
     <div class="aspect-[4/3] w-full overflow-hidden bg-primary-50">
-      <img
+      <AuthedImage
         v-if="plant.currentImage"
         :src="`/api/images/${plant.currentImage.id}`"
         :alt="plant.name"

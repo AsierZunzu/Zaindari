@@ -1,8 +1,17 @@
-import { describe, it, expect } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createWebHistory } from 'vue-router'
 import PlantCard from '../PlantCard.vue'
+import { api } from '../../api/client'
 import type { PlantWithImage } from '../../api/plants'
+
+// Images are pulled through the api client so the request carries the
+// Authorization header an <img> tag cannot; jsdom provides neither.
+vi.mock('../../api/client', () => ({
+  api: { getBlob: vi.fn() },
+}))
+
+const mockedApi = vi.mocked(api)
 
 const router = createRouter({
   history: createWebHistory(),
@@ -34,6 +43,13 @@ function mountCard(plant: PlantWithImage) {
 }
 
 describe('PlantCard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedApi.getBlob.mockResolvedValue(new Blob(['bytes'], { type: 'image/webp' }))
+    URL.createObjectURL = vi.fn().mockReturnValue('blob:fake-url')
+    URL.revokeObjectURL = vi.fn()
+  })
+
   it('renders the plant name', () => {
     const wrapper = mountCard(makePlant())
     expect(wrapper.text()).toContain('Monstera')
@@ -50,7 +66,7 @@ describe('PlantCard', () => {
     expect(wrapper.text()).toContain('\u{1F331}')
   })
 
-  it('shows image when plant has one', () => {
+  it('shows image when plant has one', async () => {
     const plant = makePlant({
       currentImage: {
         id: 'img1',
@@ -61,9 +77,32 @@ describe('PlantCard', () => {
       },
     })
     const wrapper = mountCard(plant)
+    await flushPromises()
+
+    expect(mockedApi.getBlob).toHaveBeenCalledWith('/api/images/img1')
+
     const img = wrapper.find('img')
     expect(img.exists()).toBe(true)
-    expect(img.attributes('src')).toBe('/api/images/img1')
+    // The element gets the object URL, never the guarded endpoint -- pointing it
+    // at /api/images/... directly is exactly the 401 this indirection avoids.
+    expect(img.attributes('src')).toBe('blob:fake-url')
+  })
+
+  it('renders no img element when the image fetch fails', async () => {
+    mockedApi.getBlob.mockRejectedValue(new Error('401'))
+    const plant = makePlant({
+      currentImage: {
+        id: 'img1',
+        plantId: '1',
+        filePath: '/uploads/img1.jpg',
+        isCurrent: true,
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+    })
+    const wrapper = mountCard(plant)
+    await flushPromises()
+
+    expect(wrapper.find('img').exists()).toBe(false)
   })
 
   it('links to the plant detail page', () => {

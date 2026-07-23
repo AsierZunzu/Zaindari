@@ -5,6 +5,7 @@ import { plantsApi } from '../api/plants'
 import { tasksApi } from '../api/tasks'
 import type { PlantWithImage } from '../api/plants'
 import type { PlantImage, Task } from '../types'
+import AuthedImage from '../components/AuthedImage.vue'
 import ShareDialog from '../components/ShareDialog.vue'
 import TaskList from '../components/TaskList.vue'
 import ScheduleEditor from '../components/ScheduleEditor.vue'
@@ -83,7 +84,7 @@ async function handleDelete() {
       <!-- Hero image -->
       <div class="overflow-hidden rounded-xl bg-primary-50">
         <div class="aspect-[16/9] w-full">
-          <img
+          <AuthedImage
             v-if="plant.currentImage"
             :src="`/api/images/${plant.currentImage.id}`"
             :alt="plant.name"
@@ -184,8 +185,8 @@ async function handleDelete() {
               :class="selectedImageUrl === `/api/images/${img.id}` ? 'ring-primary-500' : 'ring-transparent hover:ring-gray-300'"
               @click="selectedImageUrl = selectedImageUrl === `/api/images/${img.id}` ? null : `/api/images/${img.id}`"
             >
-              <div class="aspect-square">
-                <img
+              <div class="aspect-square bg-primary-50">
+                <AuthedImage
                   :src="`/api/images/${img.id}`"
                   :alt="`${plant.name} photo`"
                   class="h-full w-full object-cover"
@@ -196,7 +197,7 @@ async function handleDelete() {
 
           <!-- Full size preview -->
           <div v-if="selectedImageUrl" class="mt-3 overflow-hidden rounded-xl">
-            <img
+            <AuthedImage
               :src="selectedImageUrl"
               :alt="plant.name"
               class="w-full rounded-xl object-contain"

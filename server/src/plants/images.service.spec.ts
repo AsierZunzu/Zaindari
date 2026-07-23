@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ImagesService } from './images.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -114,20 +114,50 @@ describe('ImagesService', () => {
   });
 
   describe('serve', () => {
-    it('should return full file path', async () => {
-      prisma.plantImage.findUnique.mockResolvedValue(mockImage);
+    /** Shapes the image the way `serve` loads it: with its plant and shares. */
+    const imageOwnedBy = (ownerId: string, sharedWith: string[] = []) => ({
+      ...mockImage,
+      plant: {
+        id: 'plant-1',
+        ownerId,
+        shares: sharedWith.map((userId) => ({ userId, plantId: 'plant-1' })),
+      },
+    });
 
-      const result = await service.serve('img-1');
+    it('should return full file path for the owner', async () => {
+      prisma.plantImage.findUnique.mockResolvedValue(imageOwnedBy('user-1'));
+
+      const result = await service.serve('img-1', 'user-1');
 
       expect(result).toContain('uploads');
       expect(result).toContain('plant-1');
       expect(result).toContain('test-uuid.webp');
     });
 
+    it('should return full file path for a user the plant is shared with', async () => {
+      prisma.plantImage.findUnique.mockResolvedValue(
+        imageOwnedBy('user-1', ['user-2']),
+      );
+
+      const result = await service.serve('img-1', 'user-2');
+
+      expect(result).toContain('test-uuid.webp');
+    });
+
+    it('should throw ForbiddenException for an unrelated user', async () => {
+      prisma.plantImage.findUnique.mockResolvedValue(
+        imageOwnedBy('user-1', ['user-2']),
+      );
+
+      await expect(service.serve('img-1', 'intruder')).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
     it('should throw NotFoundException if image not found', async () => {
       prisma.plantImage.findUnique.mockResolvedValue(null);
 
-      await expect(service.serve('nonexistent')).rejects.toThrow(
+      await expect(service.serve('nonexistent', 'user-1')).rejects.toThrow(
         NotFoundException,
       );
     });
