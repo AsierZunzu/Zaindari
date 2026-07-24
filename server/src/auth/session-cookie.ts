@@ -50,6 +50,8 @@ export function clearRefreshCookie(
 }
 
 export function readRefreshCookie(req: Request): string | undefined {
-  const cookies = (req as Request & { cookies?: Record<string, string> }).cookies;
+  // cookie-parser types `req.cookies` as `any`; naming the shape here keeps the
+  // `any` from leaking out through the return type.
+  const cookies = req.cookies as Record<string, string> | undefined;
   return cookies?.[REFRESH_COOKIE_NAME];
 }

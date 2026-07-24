@@ -20,10 +20,38 @@ describe('TasksService', () => {
   };
 
   const mockSchedules = [
-    { taskType: 'watering', intervalDays: 3, hour: 8, minute: 0, isOverride: false, enabled: true },
-    { taskType: 'fertilization', intervalDays: 30, hour: 9, minute: 0, isOverride: false, enabled: true },
-    { taskType: 'misting', intervalDays: 2, hour: 8, minute: 0, isOverride: false, enabled: true },
-    { taskType: 'repotting', intervalDays: 365, hour: 10, minute: 0, isOverride: false, enabled: true },
+    {
+      taskType: 'watering',
+      intervalDays: 3,
+      hour: 8,
+      minute: 0,
+      isOverride: false,
+      enabled: true,
+    },
+    {
+      taskType: 'fertilization',
+      intervalDays: 30,
+      hour: 9,
+      minute: 0,
+      isOverride: false,
+      enabled: true,
+    },
+    {
+      taskType: 'misting',
+      intervalDays: 2,
+      hour: 8,
+      minute: 0,
+      isOverride: false,
+      enabled: true,
+    },
+    {
+      taskType: 'repotting',
+      intervalDays: 365,
+      hour: 10,
+      minute: 0,
+      isOverride: false,
+      enabled: true,
+    },
   ];
 
   beforeEach(async () => {
@@ -70,7 +98,12 @@ describe('TasksService', () => {
       };
 
       prisma.task.findUnique.mockResolvedValue(task);
-      prisma.task.update.mockResolvedValue({ ...task, status: 'done', completedAt: now, completedBy: 'user-1' });
+      prisma.task.update.mockResolvedValue({
+        ...task,
+        status: 'done',
+        completedAt: now,
+        completedBy: 'user-1',
+      });
       prisma.task.create.mockResolvedValue({});
 
       const result = await service.complete('task-1', 'user-1');
@@ -179,9 +212,7 @@ describe('TasksService', () => {
         status: 'pending',
       });
 
-      await expect(service.undo('task-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.undo('task-1')).rejects.toThrow(BadRequestException);
     });
 
     it('should not fail if no next pending task exists', async () => {
@@ -223,7 +254,7 @@ describe('TasksService', () => {
       };
       prisma.task.update.mockResolvedValue(snoozedTask);
 
-      const result = await service.snooze('task-1', { hours: 2 });
+      await service.snooze('task-1', { hours: 2 });
 
       expect(prisma.task.update).toHaveBeenCalledWith({
         where: { id: 'task-1' },
@@ -268,7 +299,11 @@ describe('TasksService', () => {
       });
       prisma.task.create.mockResolvedValue({});
 
-      const result = await service.skip('task-1', { reason: 'On vacation' }, 'user-1');
+      const result = await service.skip(
+        'task-1',
+        { reason: 'On vacation' },
+        'user-1',
+      );
 
       expect(result.status).toBe('skipped');
       expect(prisma.task.create).toHaveBeenCalledWith({
@@ -304,7 +339,11 @@ describe('TasksService', () => {
 
     it('should return tasks with their plant so the agenda can label them', async () => {
       const tasks = [
-        { id: 'task-1', taskType: 'watering', plant: { id: 'plant-1', name: 'Monstera', location: 'Kitchen' } },
+        {
+          id: 'task-1',
+          taskType: 'watering',
+          plant: { id: 'plant-1', name: 'Monstera', location: 'Kitchen' },
+        },
       ];
       prisma.task.findMany.mockResolvedValue(tasks);
 
@@ -312,7 +351,9 @@ describe('TasksService', () => {
 
       expect(result).toEqual(tasks);
       expect(prisma.task.findMany.mock.calls[0][0]).toMatchObject({
-        include: { plant: { select: { id: true, name: true, location: true } } },
+        include: {
+          plant: { select: { id: true, name: true, location: true } },
+        },
         orderBy: { dueAt: 'asc' },
       });
     });
@@ -329,7 +370,9 @@ describe('TasksService', () => {
     it('should filter by the requested statuses', async () => {
       prisma.task.findMany.mockResolvedValue([]);
 
-      await service.getTasksForUser('user-1', { statuses: ['pending', 'done'] });
+      await service.getTasksForUser('user-1', {
+        statuses: ['pending', 'done'],
+      });
 
       expect(whereOf().status).toEqual({ in: ['pending', 'done'] });
     });
@@ -337,7 +380,11 @@ describe('TasksService', () => {
     it('should also match still-actionable tasks before the window when includeOverdue is set', async () => {
       prisma.task.findMany.mockResolvedValue([]);
 
-      await service.getTasksForUser('user-1', { from, to, includeOverdue: true });
+      await service.getTasksForUser('user-1', {
+        from,
+        to,
+        includeOverdue: true,
+      });
 
       expect(whereOf().OR).toEqual([
         { dueAt: { gte: from, lte: to } },
@@ -348,7 +395,11 @@ describe('TasksService', () => {
     it('should not widen the window for overdue tasks when includeOverdue is off', async () => {
       prisma.task.findMany.mockResolvedValue([]);
 
-      await service.getTasksForUser('user-1', { from, to, includeOverdue: false });
+      await service.getTasksForUser('user-1', {
+        from,
+        to,
+        includeOverdue: false,
+      });
 
       expect(whereOf().OR).toBeUndefined();
       expect(whereOf().dueAt).toEqual({ gte: from, lte: to });

@@ -1,15 +1,24 @@
-import { CanActivate, ExecutionContext, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { apiError, ERROR_CODES } from '../errors/api-error.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import type { AuthenticatedRequest } from '../types/authenticated-request.js';
 
 @Injectable()
 export class PlantAccessGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const userId: string = request.user?.id;
-    const plantId: string = request.params.id;
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const userId = request.user?.id;
+    // express types a route param as `string | string[]`; `:id` can only ever
+    // bind a single segment, so anything else is not a plant id.
+    const rawPlantId = request.params.id;
+    const plantId = typeof rawPlantId === 'string' ? rawPlantId : undefined;
 
     if (!userId || !plantId) {
       return false;

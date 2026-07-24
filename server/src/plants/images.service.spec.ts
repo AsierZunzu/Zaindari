@@ -4,10 +4,6 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ImagesService } from './images.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-const mockToFile = vi.fn().mockResolvedValue(undefined);
-const mockWebp = vi.fn().mockReturnValue({ toFile: mockToFile });
-const mockResize = vi.fn().mockReturnValue({ webp: mockWebp });
-
 vi.mock('sharp', () => {
   const sharpFn = vi.fn().mockReturnValue({
     resize: vi.fn().mockReturnValue({
@@ -67,10 +63,7 @@ describe('ImagesService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ImagesService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [ImagesService, { provide: PrismaService, useValue: prisma }],
     }).compile();
 
     service = module.get<ImagesService>(ImagesService);

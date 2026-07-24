@@ -46,10 +46,7 @@ describe('PlantsService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        PlantsService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [PlantsService, { provide: PrismaService, useValue: prisma }],
     }).compile();
 
     service = module.get<PlantsService>(PlantsService);
@@ -180,7 +177,9 @@ describe('PlantsService', () => {
 
       await service.delete('plant-1');
 
-      expect(prisma.plant.delete).toHaveBeenCalledWith({ where: { id: 'plant-1' } });
+      expect(prisma.plant.delete).toHaveBeenCalledWith({
+        where: { id: 'plant-1' },
+      });
       expect(fs.rmSync).toHaveBeenCalled();
     });
 
@@ -191,7 +190,9 @@ describe('PlantsService', () => {
 
       await service.delete('plant-1');
 
-      expect(prisma.plant.delete).toHaveBeenCalledWith({ where: { id: 'plant-1' } });
+      expect(prisma.plant.delete).toHaveBeenCalledWith({
+        where: { id: 'plant-1' },
+      });
       expect(fs.rmSync).not.toHaveBeenCalled();
     });
 

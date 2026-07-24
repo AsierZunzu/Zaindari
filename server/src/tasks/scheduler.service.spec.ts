@@ -1,39 +1,73 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SchedulerService } from './scheduler.service.js';
 import { SchedulesService } from '../schedules/schedules.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
 
+// A bare `vi.fn()` infers a void-returning mock, so handing mockImplementation
+// an async function reads as a floating promise. Naming the signature once says
+// these mocks stand in for Prisma methods, which resolve values.
+type MockFn = Mock<(...args: any[]) => any>;
+
 describe('SchedulerService', () => {
   let service: SchedulerService;
   let schedulesService: {
-    getMergedSchedules: ReturnType<typeof vi.fn>;
-    getUserNotificationTimes: ReturnType<typeof vi.fn>;
+    getMergedSchedules: MockFn;
+    getUserNotificationTimes: MockFn;
   };
-  let pushService: { sendNotification: ReturnType<typeof vi.fn> };
+  let pushService: { sendNotification: MockFn };
   let prisma: {
     plant: {
-      findMany: ReturnType<typeof vi.fn>;
-      findUnique: ReturnType<typeof vi.fn>;
+      findMany: MockFn;
+      findUnique: MockFn;
     };
     task: {
-      findFirst: ReturnType<typeof vi.fn>;
-      findMany: ReturnType<typeof vi.fn>;
-      create: ReturnType<typeof vi.fn>;
-      updateMany: ReturnType<typeof vi.fn>;
+      findFirst: MockFn;
+      findMany: MockFn;
+      create: MockFn;
+      updateMany: MockFn;
     };
     taskNotification: {
-      create: ReturnType<typeof vi.fn>;
+      create: MockFn;
     };
   };
 
   // No plant pins a time, so every reminder follows its recipient's own.
   const mockSchedules = [
-    { taskType: 'watering', intervalDays: 3, hour: null, minute: null, isOverride: false, enabled: true },
-    { taskType: 'fertilization', intervalDays: 30, hour: null, minute: null, isOverride: false, enabled: true },
-    { taskType: 'misting', intervalDays: 2, hour: null, minute: null, isOverride: false, enabled: true },
-    { taskType: 'repotting', intervalDays: 365, hour: null, minute: null, isOverride: false, enabled: true },
+    {
+      taskType: 'watering',
+      intervalDays: 3,
+      hour: null,
+      minute: null,
+      isOverride: false,
+      enabled: true,
+    },
+    {
+      taskType: 'fertilization',
+      intervalDays: 30,
+      hour: null,
+      minute: null,
+      isOverride: false,
+      enabled: true,
+    },
+    {
+      taskType: 'misting',
+      intervalDays: 2,
+      hour: null,
+      minute: null,
+      isOverride: false,
+      enabled: true,
+    },
+    {
+      taskType: 'repotting',
+      intervalDays: 365,
+      hour: null,
+      minute: null,
+      isOverride: false,
+      enabled: true,
+    },
   ];
 
   beforeEach(async () => {
@@ -377,7 +411,9 @@ describe('SchedulerService', () => {
     });
 
     it('latches even when the push fails, so it cannot loop', async () => {
-      pushService.sendNotification.mockRejectedValue(new Error('endpoint gone'));
+      pushService.sendNotification.mockRejectedValue(
+        new Error('endpoint gone'),
+      );
 
       await tick([pendingTask()], new Date('2024-06-10T09:00:00Z'));
 

@@ -212,9 +212,7 @@ export class SchedulerService {
         continue;
       }
 
-      const alreadyNotified = new Set(
-        task.notifications.map((n) => n.userId),
-      );
+      const alreadyNotified = new Set(task.notifications.map((n) => n.userId));
 
       // Map, not Set: the owner may also appear as a share, and we need one
       // locale per distinct user.

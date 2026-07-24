@@ -28,7 +28,8 @@ export class RefreshTokenService {
 
   /** Lifetime of a refresh token, in milliseconds. */
   get ttlMs(): number {
-    const days = this.configService.get<number>('jwt.refreshExpirationDays') ?? 30;
+    const days =
+      this.configService.get<number>('jwt.refreshExpirationDays') ?? 30;
     return days * 24 * 60 * 60 * 1000;
   }
 

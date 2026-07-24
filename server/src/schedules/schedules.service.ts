@@ -259,7 +259,10 @@ export function assertValidTime(time: NotificationTime) {
 
   if (!valid) {
     throw new BadRequestException(
-      apiError(ERROR_CODES.invalidNotificationTime, 'Invalid notification time'),
+      apiError(
+        ERROR_CODES.invalidNotificationTime,
+        'Invalid notification time',
+      ),
     );
   }
 }

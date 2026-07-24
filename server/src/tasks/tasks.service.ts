@@ -106,7 +106,9 @@ export class TasksService {
       );
     }
 
-    const mergedSchedules = await this.schedulesService.getMergedSchedules(task.plantId);
+    const mergedSchedules = await this.schedulesService.getMergedSchedules(
+      task.plantId,
+    );
     const schedule = mergedSchedules.find((s) => s.taskType === task.taskType);
 
     const now = new Date();
@@ -120,7 +122,12 @@ export class TasksService {
     });
 
     if (schedule) {
-      const nextDueAt = this.calculateNextDueAt(now, schedule.intervalDays, schedule.hour, schedule.minute);
+      const nextDueAt = this.calculateNextDueAt(
+        now,
+        schedule.intervalDays,
+        schedule.hour,
+        schedule.minute,
+      );
       await this.prisma.task.create({
         data: {
           plantId: task.plantId,
@@ -145,8 +152,6 @@ export class TasksService {
     });
 
     if (!task) {
-      const mergedSchedules = await this.schedulesService.getMergedSchedules(plantId);
-      const schedule = mergedSchedules.find((s) => s.taskType === taskType);
       const now = new Date();
 
       task = await this.prisma.task.create({
@@ -171,7 +176,10 @@ export class TasksService {
     }
     if (task.status !== 'done') {
       throw new BadRequestException(
-        apiError(ERROR_CODES.taskNotUndoable, 'Only completed tasks can be undone'),
+        apiError(
+          ERROR_CODES.taskNotUndoable,
+          'Only completed tasks can be undone',
+        ),
       );
     }
 
@@ -221,7 +229,9 @@ export class TasksService {
     });
   }
 
-  async skip(taskId: string, data: { reason?: string }, userId: string) {
+  // `_userId` is unused: unlike complete(), skipping records no actor. The
+  // parameter stays so the controller's call shape matches complete()'s.
+  async skip(taskId: string, data: { reason?: string }, _userId: string) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
       throw new NotFoundException(
@@ -229,7 +239,9 @@ export class TasksService {
       );
     }
 
-    const mergedSchedules = await this.schedulesService.getMergedSchedules(task.plantId);
+    const mergedSchedules = await this.schedulesService.getMergedSchedules(
+      task.plantId,
+    );
     const schedule = mergedSchedules.find((s) => s.taskType === task.taskType);
 
     const now = new Date();
@@ -242,7 +254,12 @@ export class TasksService {
     });
 
     if (schedule) {
-      const nextDueAt = this.calculateNextDueAt(now, schedule.intervalDays, schedule.hour, schedule.minute);
+      const nextDueAt = this.calculateNextDueAt(
+        now,
+        schedule.intervalDays,
+        schedule.hour,
+        schedule.minute,
+      );
       await this.prisma.task.create({
         data: {
           plantId: task.plantId,

@@ -272,10 +272,12 @@ describe('resolveNotificationTime', () => {
   const noPlantTime = { hour: null, minute: null };
 
   it("uses the user's base time by default", () => {
-    expect(resolveNotificationTime(noPlantTime, user, 'fertilization')).toEqual({
-      hour: 21,
-      minute: 0,
-    });
+    expect(resolveNotificationTime(noPlantTime, user, 'fertilization')).toEqual(
+      {
+        hour: 21,
+        minute: 0,
+      },
+    );
   });
 
   it("prefers the user's override for that task type", () => {

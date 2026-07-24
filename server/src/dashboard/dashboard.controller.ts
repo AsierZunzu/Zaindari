@@ -12,10 +12,7 @@ export class DashboardController {
   async getDashboard(@CurrentUser() user: { id: string }) {
     const plants = await this.prisma.plant.findMany({
       where: {
-        OR: [
-          { ownerId: user.id },
-          { shares: { some: { userId: user.id } } },
-        ],
+        OR: [{ ownerId: user.id }, { shares: { some: { userId: user.id } } }],
       },
       include: {
         images: {

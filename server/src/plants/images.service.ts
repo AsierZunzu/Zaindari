@@ -73,7 +73,10 @@ export class ImagesService {
 
     if (!isOwner && !isShared) {
       throw new ForbiddenException(
-        apiError(ERROR_CODES.imageForbidden, 'You do not have access to this image'),
+        apiError(
+          ERROR_CODES.imageForbidden,
+          'You do not have access to this image',
+        ),
       );
     }
 

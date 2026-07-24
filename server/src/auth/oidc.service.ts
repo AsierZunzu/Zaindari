@@ -7,10 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
-import {
-  localeFromAcceptLanguage,
-  resolveLocale,
-} from '../i18n/messages.js';
+import { localeFromAcceptLanguage, resolveLocale } from '../i18n/messages.js';
 import type { User } from '@prisma/client';
 
 @Injectable()
@@ -91,10 +88,10 @@ export class OidcService {
       try {
         const info = await fetchUserInfo(
           oidcConfig,
-          tokens.access_token!,
+          tokens.access_token,
           sub || 'unknown',
         );
-        userInfo = info as unknown as Record<string, unknown>;
+        userInfo = info;
         if (!sub && userInfo.sub) sub = userInfo.sub as string;
       } catch (e) {
         this.logger.warn('Could not fetch userinfo, using token claims', e);
@@ -154,8 +151,7 @@ export class OidcService {
       (userInfo.preferred_username as string) ||
       (userInfo.email as string) ||
       `oidc_${oidcSubject.substring(0, 8)}`;
-    const displayName =
-      (userInfo.name as string) || preferredUsername;
+    const displayName = (userInfo.name as string) || preferredUsername;
     const email = (userInfo.email as string) || undefined;
 
     // Make username unique if needed

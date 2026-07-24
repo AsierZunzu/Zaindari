@@ -22,7 +22,7 @@ export class UsersController {
   ) {}
 
   @Get()
-  async getProfile(@CurrentUser() user: User) {
+  getProfile(@CurrentUser() user: User) {
     const { passwordHash, ...profile } = user;
     return profile;
   }
@@ -65,9 +65,7 @@ export class UsersController {
     return this.schedulesService.setUserTaskTime(
       user.id,
       taskType,
-      body.hour === null
-        ? null
-        : { hour: body.hour, minute: body.minute ?? 0 },
+      body.hour === null ? null : { hour: body.hour, minute: body.minute ?? 0 },
     );
   }
 }

@@ -102,8 +102,12 @@ export class PushService implements OnModuleInit {
             },
             JSON.stringify(payload),
           );
-        } catch (err: any) {
-          if (err.statusCode === 410 || err.statusCode === 404) {
+        } catch (err) {
+          // 410 Gone / 404 mean the push service has permanently dropped this
+          // endpoint; anything else is transient and worth surfacing.
+          const statusCode =
+            err instanceof webPush.WebPushError ? err.statusCode : undefined;
+          if (statusCode === 410 || statusCode === 404) {
             this.logger.warn(`Removing stale subscription ${sub.id}`);
             await this.prisma.pushSubscription.delete({
               where: { id: sub.id },

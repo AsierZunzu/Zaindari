@@ -21,10 +21,15 @@ export class SharingController {
   constructor(private readonly prisma: PrismaService) {}
 
   private async ensureOwner(plantId: string, userId: string) {
-    const plant = await this.prisma.plant.findUnique({ where: { id: plantId } });
+    const plant = await this.prisma.plant.findUnique({
+      where: { id: plantId },
+    });
     if (!plant || plant.ownerId !== userId) {
       throw new ForbiddenException(
-        apiError(ERROR_CODES.plantShareOwnerOnly, 'Only the owner can manage shares'),
+        apiError(
+          ERROR_CODES.plantShareOwnerOnly,
+          'Only the owner can manage shares',
+        ),
       );
     }
   }
@@ -37,7 +42,9 @@ export class SharingController {
     await this.ensureOwner(plantId, user.id);
     return this.prisma.plantShare.findMany({
       where: { plantId },
-      include: { user: { select: { id: true, username: true, displayName: true } } },
+      include: {
+        user: { select: { id: true, username: true, displayName: true } },
+      },
     });
   }
 

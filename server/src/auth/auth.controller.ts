@@ -7,6 +7,7 @@ import {
   Req,
   Res,
   UseGuards,
+  BadRequestException,
   NotFoundException,
   UnauthorizedException,
   HttpCode,
@@ -26,6 +27,28 @@ import {
   readRefreshCookie,
 } from './session-cookie.js';
 import type { User } from '@prisma/client';
+
+// A proxy that sets a forwarded header more than once leaves express with an
+// array; the value nearest the client is the one that matters.
+function firstHeaderValue(
+  value: string | string[] | undefined,
+): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+// The OIDC spec requires the redirect_uri presented at /oidc and the one sent
+// back at /oidc/callback to match exactly, so both derive it from here rather
+// than rebuilding the string twice.
+function resolveOidcRedirectUri(req: Request): string {
+  const protocol =
+    firstHeaderValue(req.headers['x-forwarded-proto']) || req.protocol;
+  const host =
+    firstHeaderValue(req.headers['x-forwarded-host']) || req.get('host');
+  if (!host) {
+    throw new BadRequestException('Cannot determine the OIDC callback host');
+  }
+  return `${protocol}://${host}/api/auth/oidc/callback`;
+}
 
 @Controller('api/auth')
 export class AuthController {
@@ -137,9 +160,7 @@ export class AuthController {
       throw new NotFoundException('OIDC is not configured');
     }
 
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.headers['x-forwarded-host'] || req.get('host');
-    const redirectUri = `${protocol}://${host}/api/auth/oidc/callback`;
+    const redirectUri = resolveOidcRedirectUri(req);
 
     const authorizationUrl =
       await this.oidcService.getAuthorizationUrl(redirectUri);
@@ -152,9 +173,7 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.headers['x-forwarded-host'] || req.get('host');
-    const redirectUri = `${protocol}://${host}/api/auth/oidc/callback`;
+    const redirectUri = resolveOidcRedirectUri(req);
 
     const result = await this.oidcService.handleCallback(
       code,

@@ -71,7 +71,8 @@ export class AdminService {
     }
 
     const updateData: Record<string, unknown> = {};
-    if (data.displayName !== undefined) updateData.displayName = data.displayName;
+    if (data.displayName !== undefined)
+      updateData.displayName = data.displayName;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.isAdmin !== undefined) updateData.isAdmin = data.isAdmin;
     if (data.password) {

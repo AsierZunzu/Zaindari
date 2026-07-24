@@ -69,7 +69,10 @@ export class PlantsController {
     const plant = await this.plantsService.findById(id);
     if (plant.ownerId !== user.id) {
       throw new ForbiddenException(
-        apiError(ERROR_CODES.plantOwnerOnly, 'Only the owner can update this plant'),
+        apiError(
+          ERROR_CODES.plantOwnerOnly,
+          'Only the owner can update this plant',
+        ),
       );
     }
     return this.plantsService.update(id, dto);
@@ -78,14 +81,14 @@ export class PlantsController {
   @Delete('plants/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(PlantAccessGuard)
-  async remove(
-    @Param('id') id: string,
-    @CurrentUser() user: { id: string },
-  ) {
+  async remove(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     const plant = await this.plantsService.findById(id);
     if (plant.ownerId !== user.id) {
       throw new ForbiddenException(
-        apiError(ERROR_CODES.plantOwnerOnly, 'Only the owner can delete this plant'),
+        apiError(
+          ERROR_CODES.plantOwnerOnly,
+          'Only the owner can delete this plant',
+        ),
       );
     }
     return this.plantsService.delete(id);

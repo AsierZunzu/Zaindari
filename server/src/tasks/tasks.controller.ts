@@ -101,7 +101,10 @@ export class TasksController {
     return this.tasksService.skip(taskId, body, user.id);
   }
 
-  private parseDate(value: string | undefined, param: string): Date | undefined {
+  private parseDate(
+    value: string | undefined,
+    param: string,
+  ): Date | undefined {
     if (!value) {
       return undefined;
     }
@@ -117,7 +120,10 @@ export class TasksController {
       return undefined;
     }
     const allowed = Object.values(TaskStatus) as string[];
-    const statuses = value.split(',').map((s) => s.trim()).filter(Boolean);
+    const statuses = value
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
     const invalid = statuses.filter((s) => !allowed.includes(s));
     if (invalid.length) {
       throw new BadRequestException(`Invalid status: ${invalid.join(', ')}`);

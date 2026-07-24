@@ -36,10 +36,7 @@ export class PlantsService {
   async findAllForUser(userId: string) {
     return this.prisma.plant.findMany({
       where: {
-        OR: [
-          { ownerId: userId },
-          { shares: { some: { userId } } },
-        ],
+        OR: [{ ownerId: userId }, { shares: { some: { userId } } }],
       },
       include: {
         images: {
@@ -71,7 +68,10 @@ export class PlantsService {
     return plant;
   }
 
-  async create(ownerId: string, data: { name: string; location?: string; instructions?: string }) {
+  async create(
+    ownerId: string,
+    data: { name: string; location?: string; instructions?: string },
+  ) {
     return this.prisma.plant.create({
       data: {
         ownerId,
@@ -82,7 +82,10 @@ export class PlantsService {
     });
   }
 
-  async update(id: string, data: { name?: string; location?: string; instructions?: string }) {
+  async update(
+    id: string,
+    data: { name?: string; location?: string; instructions?: string },
+  ) {
     const plant = await this.prisma.plant.findUnique({ where: { id } });
     if (!plant) {
       throw new NotFoundException(

@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UnauthorizedException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -15,7 +19,11 @@ vi.mock('bcrypt', () => ({
 
 describe('AuthService', () => {
   let authService: AuthService;
-  let usersService: { findByUsername: ReturnType<typeof vi.fn>; findById: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
+  let usersService: {
+    findByUsername: ReturnType<typeof vi.fn>;
+    findById: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+  };
   let jwtService: { sign: ReturnType<typeof vi.fn> };
   let configService: { get: ReturnType<typeof vi.fn> };
   let refreshTokenService: {
@@ -85,7 +93,9 @@ describe('AuthService', () => {
     it('should register a new user and return token', async () => {
       usersService.findByUsername.mockResolvedValue(null);
       usersService.create.mockResolvedValue(mockUser);
-      vi.mocked(bcrypt.hash).mockResolvedValue('$2b$10$hashedpassword' as never);
+      vi.mocked(bcrypt.hash).mockResolvedValue(
+        '$2b$10$hashedpassword' as never,
+      );
 
       const result = await authService.register({
         username: 'testuser',
@@ -96,7 +106,9 @@ describe('AuthService', () => {
 
       expect(result.accessToken).toBe('jwt-token');
       expect(result.user.username).toBe('testuser');
-      expect((result.user as Record<string, unknown>).passwordHash).toBeUndefined();
+      expect(
+        (result.user as Record<string, unknown>).passwordHash,
+      ).toBeUndefined();
     });
 
     it('should throw ConflictException if username exists', async () => {
@@ -182,7 +194,9 @@ describe('AuthService', () => {
       await expect(authService.refresh('raw-refresh-token')).rejects.toThrow(
         UnauthorizedException,
       );
-      expect(refreshTokenService.revokeAllForUser).toHaveBeenCalledWith('user-1');
+      expect(refreshTokenService.revokeAllForUser).toHaveBeenCalledWith(
+        'user-1',
+      );
     });
 
     it('should propagate rejection of an invalid refresh token', async () => {
@@ -200,7 +214,9 @@ describe('AuthService', () => {
   describe('logout', () => {
     it('should revoke the presented refresh token', async () => {
       await authService.logout('raw-refresh-token');
-      expect(refreshTokenService.revoke).toHaveBeenCalledWith('raw-refresh-token');
+      expect(refreshTokenService.revoke).toHaveBeenCalledWith(
+        'raw-refresh-token',
+      );
     });
 
     it('should be a no-op when no token is presented', async () => {

@@ -29,7 +29,10 @@ export const imageUploadOptions: MulterOptions = {
       // surfaces as a 400 rather than being remapped to a 500.
       cb(
         new BadRequestException(
-          apiError(ERROR_CODES.invalidImage, 'Only image files can be uploaded'),
+          apiError(
+            ERROR_CODES.invalidImage,
+            'Only image files can be uploaded',
+          ),
         ),
         false,
       );

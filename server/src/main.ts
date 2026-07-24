@@ -39,9 +39,12 @@ async function bootstrap() {
     // SPA fallback: serve index.html for non-API routes
     const express = app.getHttpAdapter().getInstance();
     const indexPath = join(staticDir, 'index.html');
-    express.get(/^\/(?!api\/)(?!uploads\/).*/, (_req: unknown, res: { sendFile: (path: string) => void }) => {
-      res.sendFile(indexPath);
-    });
+    express.get(
+      /^\/(?!api\/)(?!uploads\/).*/,
+      (_req: unknown, res: { sendFile: (path: string) => void }) => {
+        res.sendFile(indexPath);
+      },
+    );
   }
 
   const configService = app.get(ConfigService);
