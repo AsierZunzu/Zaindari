@@ -5,9 +5,11 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { localeFromAcceptLanguage, resolveLocale } from '../i18n/messages.js';
+import { grantsAdmin } from './admin-bootstrap.js';
 import type { User } from '@prisma/client';
 
 @Injectable()
@@ -18,6 +20,7 @@ export class OidcService {
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async getOidcConfig() {
@@ -167,6 +170,14 @@ export class OidcService {
       displayName,
       email,
       oidcSubject,
+      // Matched against the deduplicated name, not the provider's preferred
+      // one: if the bootstrap username is already taken this account lands as
+      // `<name>_1`, and it must not inherit admin on the strength of a claim
+      // it lost.
+      isAdmin: grantsAdmin(
+        username,
+        this.configService.get<string>('admin.bootstrapUsername') ?? '',
+      ),
       // The `locale` claim is part of OIDC standard claims, so prefer the
       // identity provider's answer and fall back to the browser's header.
       locale: userInfo.locale

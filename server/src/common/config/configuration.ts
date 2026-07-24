@@ -20,5 +20,12 @@ export default () => ({
   signup: {
     enabled: (process.env.ZAINDARI_SIGNUP_ENABLED ?? 'true') === 'true',
   },
+  admin: {
+    // Bootstrap escape hatch: only an admin can mint another admin, so without
+    // this a fresh install has no reachable admin panel. The account claiming
+    // this username is granted `isAdmin`. Empty means "nobody" — once a real
+    // admin exists, unset it.
+    bootstrapUsername: process.env.ZAINDARI_ADMIN_USERNAME ?? '',
+  },
   timezone: process.env.TZ ?? 'UTC',
 });

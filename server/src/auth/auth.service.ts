@@ -13,6 +13,7 @@ import { RegisterDto } from './dto/register.dto.js';
 import { User } from '@prisma/client';
 import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 import { localeFromAcceptLanguage } from '../i18n/messages.js';
+import { grantsAdmin } from './admin-bootstrap.js';
 
 @Injectable()
 export class AuthService {
@@ -48,6 +49,10 @@ export class AuthService {
       displayName: dto.displayName,
       email: dto.email,
       passwordHash,
+      isAdmin: grantsAdmin(
+        dto.username,
+        this.configService.get<string>('admin.bootstrapUsername') ?? '',
+      ),
       // Seeded from the browser so a new account opens in the language the
       // user is already reading in; changeable in Settings afterwards.
       locale: localeFromAcceptLanguage(acceptLanguage),
