@@ -170,7 +170,8 @@
     "at": "a las",
     "custom": "Personalizado",
     "reset": "Restablecer",
-    "none": "Sin horario configurado"
+    "none": "Sin horario configurado",
+    "eachOwnTime": "Avisar a cada persona a su hora"
   },
   "settings": {
     "title": "Ajustes",
@@ -181,7 +182,12 @@
     "notificationsBlocked": "Las notificaciones están bloqueadas. Permítelas para este sitio en los ajustes de tu navegador.",
     "notificationsEnabled": "Notificaciones activadas. Recibirás recordatorios cuando tus plantas necesiten cuidados.",
     "language": "Idioma",
-    "languageHint": "Se usa en toda la aplicación y en los recordatorios que llegan a tus dispositivos."
+    "languageHint": "Se usa en toda la aplicación y en los recordatorios que llegan a tus dispositivos.",
+    "notificationTime": "Hora de los recordatorios",
+    "notificationTimeHint": "Cuándo te llegan los recordatorios, en UTC. Solo te afecta a ti: quien comparta una planta contigo recibe los suyos a su propia hora.",
+    "notificationTimeBase": "Todos los recordatorios a las",
+    "notificationTimeUseBase": "Igual que arriba",
+    "notificationTimePlantNote": "Una planta puede fijar su propia hora, que sustituye a estas para esa planta."
   },
   "admin": {
     "title": "Panel de administración",
@@ -290,7 +296,8 @@
     "schedules": {
       "loadFailed": "No se han podido cargar los horarios.",
       "saveFailed": "No se ha podido guardar el horario.",
-      "resetFailed": "No se ha podido restablecer el horario."
+      "resetFailed": "No se ha podido restablecer el horario.",
+      "invalidNotificationTime": "Esa hora de notificación no es válida."
     },
     "admin": {
       "loadUsersFailed": "No se han podido cargar los usuarios.",

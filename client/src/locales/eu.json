@@ -170,7 +170,8 @@
     "at": "ordu honetan:",
     "custom": "Pertsonalizatua",
     "reset": "Berrezarri",
-    "none": "Ez dago ordutegirik konfiguratuta"
+    "none": "Ez dago ordutegirik konfiguratuta",
+    "eachOwnTime": "Abisatu bakoitzari bere orduan"
   },
   "settings": {
     "title": "Ezarpenak",
@@ -181,7 +182,12 @@
     "notificationsBlocked": "Jakinarazpenak blokeatuta daude. Baimendu itzazu gune honetarako zure nabigatzailearen ezarpenetan.",
     "notificationsEnabled": "Jakinarazpenak gaituta daude. Abisuak jasoko dituzu zure landareek zaintza behar dutenean.",
     "language": "Hizkuntza",
-    "languageHint": "Aplikazio osoan eta zure gailuetara iristen diren abisuetan erabiltzen da."
+    "languageHint": "Aplikazio osoan eta zure gailuetara iristen diren abisuetan erabiltzen da.",
+    "notificationTime": "Abisuen ordua",
+    "notificationTimeHint": "Noiz iristen zaizkizun abisuak, UTC ordutegian. Zuri baino ez dagokizu: landare bat zurekin partekatzen duenak bere orduan jasoko ditu bereak.",
+    "notificationTimeBase": "Abisu guztiak ordu honetan:",
+    "notificationTimeUseBase": "Goikoaren berdina",
+    "notificationTimePlantNote": "Landare batek bere ordua finka dezake, eta hauen ordez erabiliko da landare horretarako."
   },
   "admin": {
     "title": "Administrazio-panela",
@@ -290,7 +296,8 @@
     "schedules": {
       "loadFailed": "Ezin izan dira ordutegiak kargatu.",
       "saveFailed": "Ezin izan da ordutegia gorde.",
-      "resetFailed": "Ezin izan da ordutegia berrezarri."
+      "resetFailed": "Ezin izan da ordutegia berrezarri.",
+      "invalidNotificationTime": "Jakinarazpen-ordu hori ez da baliozkoa."
     },
     "admin": {
       "loadUsersFailed": "Ezin izan dira erabiltzaileak kargatu.",

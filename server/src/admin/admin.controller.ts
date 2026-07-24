@@ -83,7 +83,7 @@ export class AdminController {
   @Put('schedules/:taskType')
   updateSchedule(
     @Param('taskType') taskType: string,
-    @Body() body: { intervalDays?: number; hour?: number; minute?: number },
+    @Body() body: { intervalDays?: number },
   ) {
     return this.adminService.updateSchedule(taskType, body);
   }

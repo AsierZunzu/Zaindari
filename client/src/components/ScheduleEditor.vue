@@ -19,6 +19,13 @@ const loading = ref(true)
 const saving = ref<TaskType | null>(null)
 const error = ref('')
 
+/**
+ * Whether this plant pins a reminder time for everyone who can see it. When it
+ * does not, each collaborator is reminded at the time they chose in their own
+ * settings, so there is no single value to show here.
+ */
+const usesOwnTime = ref<Record<string, boolean>>({})
+
 const allTaskTypes: TaskType[] = ['watering', 'fertilization', 'misting', 'repotting']
 
 onMounted(async () => {
@@ -30,6 +37,9 @@ async function fetchSchedules() {
   error.value = ''
   try {
     schedules.value = await schedulesApi.getForPlant(props.plantId)
+    usesOwnTime.value = Object.fromEntries(
+      schedules.value.map((s) => [s.taskType, s.hour !== null]),
+    )
   } catch (e: unknown) {
     error.value = apiErrorMessage(e, 'errors.schedules.loadFailed')
   } finally {
@@ -46,10 +56,11 @@ async function saveSchedule(schedule: MergedSchedule) {
   saving.value = schedule.taskType
   error.value = ''
   try {
+    const ownTime = usesOwnTime.value[schedule.taskType]
     await schedulesApi.setPlantSchedule(props.plantId, schedule.taskType, {
       intervalDays: schedule.intervalDays,
-      hour: schedule.hour,
-      minute: schedule.minute,
+      hour: ownTime ? (schedule.hour ?? 9) : null,
+      minute: ownTime ? (schedule.minute ?? 0) : null,
     })
     await fetchSchedules()
   } catch (e: unknown) {
@@ -127,12 +138,22 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
               <span class="text-xs text-gray-500">{{ $t('schedules.days') }}</span>
             </div>
 
-            <!-- Time -->
-            <div class="flex items-center gap-1">
+            <!-- Reminder time: each collaborator's own, or pinned for all -->
+            <div class="flex items-center gap-2">
               <span class="text-xs text-gray-500">{{ $t('schedules.at') }}</span>
+              <label class="flex items-center gap-1 text-xs text-gray-600">
+                <input
+                  type="checkbox"
+                  :checked="!usesOwnTime[taskType]"
+                  class="rounded border-gray-300 text-primary-600 focus:ring-primary-400"
+                  @change="(e: Event) => (usesOwnTime[taskType] = !(e.target as HTMLInputElement).checked)"
+                />
+                {{ $t('schedules.eachOwnTime') }}
+              </label>
               <input
+                v-if="usesOwnTime[taskType]"
                 type="time"
-                :value="formatTime(getSchedule(taskType)!.hour, getSchedule(taskType)!.minute)"
+                :value="formatTime(getSchedule(taskType)!.hour ?? 9, getSchedule(taskType)!.minute ?? 0)"
                 class="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400"
                 @change="(e: Event) => {
                   const sched = getSchedule(taskType)!

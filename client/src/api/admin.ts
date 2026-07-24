@@ -34,12 +34,11 @@ export interface AppConfigEntry {
 
 // ── Default Schedules ──────────────────────────────────────────────
 
+/** Interval only — reminder times belong to each user, not to the task type. */
 export interface DefaultSchedule {
   id: string
   taskType: string
   intervalDays: number
-  hour: number
-  minute: number
   updatedAt: string
 }
 
@@ -100,7 +99,7 @@ export const adminApi = {
 
   updateSchedule(
     taskType: string,
-    data: { intervalDays?: number; hour?: number; minute?: number },
+    data: { intervalDays?: number },
   ): Promise<DefaultSchedule> {
     return api.put('/api/admin/schedules/' + taskType, data)
   },

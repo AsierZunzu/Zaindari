@@ -55,8 +55,9 @@ export interface Schedule {
   id: string
   taskType: TaskType
   intervalDays: number
-  hour: number
-  minute: number
+  /** null means the notification time is inherited from the level above. */
+  hour: number | null
+  minute: number | null
 }
 
 export interface PlantSchedule extends Schedule {

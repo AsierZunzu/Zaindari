@@ -26,7 +26,14 @@ export class SchedulesController {
   async setPlantSchedule(
     @Param('id') plantId: string,
     @Param('taskType') taskType: TaskType,
-    @Body() body: { intervalDays: number; hour: number; minute: number },
+    @Body()
+    body: {
+      intervalDays: number;
+      // null clears the override so the plant inherits the task type's time,
+      // or the global one when that is unset too.
+      hour: number | null;
+      minute: number | null;
+    },
   ) {
     return this.schedulesService.setPlantSchedule(plantId, taskType, body);
   }

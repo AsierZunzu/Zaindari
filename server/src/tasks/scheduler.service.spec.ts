@@ -7,8 +7,11 @@ import { PushService } from '../push/push.service.js';
 
 describe('SchedulerService', () => {
   let service: SchedulerService;
-  let schedulesService: { getMergedSchedules: ReturnType<typeof vi.fn> };
-  let pushService: { notifyPlantCollaborators: ReturnType<typeof vi.fn> };
+  let schedulesService: {
+    getMergedSchedules: ReturnType<typeof vi.fn>;
+    getUserNotificationTimes: ReturnType<typeof vi.fn>;
+  };
+  let pushService: { sendNotification: ReturnType<typeof vi.fn> };
   let prisma: {
     plant: {
       findMany: ReturnType<typeof vi.fn>;
@@ -16,16 +19,21 @@ describe('SchedulerService', () => {
     };
     task: {
       findFirst: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
     };
+    taskNotification: {
+      create: ReturnType<typeof vi.fn>;
+    };
   };
 
+  // No plant pins a time, so every reminder follows its recipient's own.
   const mockSchedules = [
-    { taskType: 'watering', intervalDays: 3, hour: 8, minute: 0, isOverride: false, enabled: true },
-    { taskType: 'fertilization', intervalDays: 30, hour: 9, minute: 0, isOverride: false, enabled: true },
-    { taskType: 'misting', intervalDays: 2, hour: 8, minute: 0, isOverride: false, enabled: true },
-    { taskType: 'repotting', intervalDays: 365, hour: 10, minute: 0, isOverride: false, enabled: true },
+    { taskType: 'watering', intervalDays: 3, hour: null, minute: null, isOverride: false, enabled: true },
+    { taskType: 'fertilization', intervalDays: 30, hour: null, minute: null, isOverride: false, enabled: true },
+    { taskType: 'misting', intervalDays: 2, hour: null, minute: null, isOverride: false, enabled: true },
+    { taskType: 'repotting', intervalDays: 365, hour: null, minute: null, isOverride: false, enabled: true },
   ];
 
   beforeEach(async () => {
@@ -38,17 +46,25 @@ describe('SchedulerService', () => {
       },
       task: {
         findFirst: vi.fn(),
+        // The notification dispatch phase; individual tests override it.
+        findMany: vi.fn().mockResolvedValue([]),
         create: vi.fn(),
         updateMany: vi.fn(),
+      },
+      taskNotification: {
+        create: vi.fn().mockResolvedValue({}),
       },
     };
 
     schedulesService = {
       getMergedSchedules: vi.fn().mockResolvedValue(mockSchedules),
+      getUserNotificationTimes: vi
+        .fn()
+        .mockResolvedValue({ base: { hour: 9, minute: 0 }, overrides: {} }),
     };
 
     pushService = {
-      notifyPlantCollaborators: vi.fn().mockResolvedValue(undefined),
+      sendNotification: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -174,6 +190,241 @@ describe('SchedulerService', () => {
 
       // Should have called updateMany for snoozed tasks
       expect(prisma.task.updateMany).toHaveBeenCalled();
+    });
+
+    it('should not notify at task creation time', async () => {
+      prisma.plant.findMany.mockResolvedValue([{ id: 'plant-1' }]);
+      prisma.task.updateMany.mockResolvedValue({ count: 0 });
+      prisma.task.findFirst.mockResolvedValue(null);
+      prisma.task.create.mockResolvedValue({});
+
+      await service.evaluateTasks();
+
+      // Creating a task is not what sends the reminder — the dispatch phase
+      // does, once each recipient's own time has arrived.
+      expect(prisma.task.create).toHaveBeenCalledTimes(4);
+      expect(pushService.sendNotification).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('notification dispatch', () => {
+    const owner = { id: 'owner-1', locale: 'en' };
+    const collaborator = { id: 'user-2', locale: 'es' };
+
+    /** A pending task on a plant, optionally shared, optionally notified. */
+    function pendingTask(overrides: Record<string, unknown> = {}) {
+      return {
+        id: 'task-1',
+        plantId: 'plant-1',
+        taskType: 'watering',
+        createdAt: new Date('2024-06-10T02:14:00Z'),
+        dueAt: new Date('2024-06-10T02:14:00Z'),
+        notifications: [],
+        plant: { name: 'Ficus', owner, shares: [] },
+        ...overrides,
+      };
+    }
+
+    /** A tick with no plants, so only the dispatch phase does anything. */
+    async function tick(tasks: Array<Record<string, unknown>>, now: Date) {
+      vi.setSystemTime(now);
+      prisma.plant.findMany.mockResolvedValue([]);
+      prisma.task.findMany.mockResolvedValue(tasks);
+      await service.evaluateTasks();
+    }
+
+    it("holds the reminder until the recipient's own time", async () => {
+      await tick([pendingTask()], new Date('2024-06-10T08:59:00Z'));
+
+      expect(pushService.sendNotification).not.toHaveBeenCalled();
+      expect(prisma.taskNotification.create).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it('sends the reminder once that time arrives', async () => {
+      await tick([pendingTask()], new Date('2024-06-10T09:00:00Z'));
+
+      expect(pushService.sendNotification).toHaveBeenCalledWith(
+        'owner-1',
+        expect.objectContaining({ url: '/plants/plant-1' }),
+      );
+      expect(prisma.taskNotification.create).toHaveBeenCalledWith({
+        data: {
+          taskId: 'task-1',
+          userId: 'owner-1',
+          notifiedAt: expect.any(Date),
+        },
+      });
+
+      vi.useRealTimers();
+    });
+
+    it('reminds two collaborators at their own separate times', async () => {
+      schedulesService.getUserNotificationTimes.mockImplementation(
+        (userId: string) =>
+          Promise.resolve(
+            userId === 'owner-1'
+              ? { base: { hour: 9, minute: 0 }, overrides: {} }
+              : { base: { hour: 21, minute: 0 }, overrides: {} },
+          ),
+      );
+
+      const shared = pendingTask({
+        plant: { name: 'Ficus', owner, shares: [{ user: collaborator }] },
+      });
+
+      // 09:00 is the owner's time; the collaborator is not due until 21:00.
+      await tick([shared], new Date('2024-06-10T09:00:00Z'));
+      expect(pushService.sendNotification).toHaveBeenCalledTimes(1);
+      expect(pushService.sendNotification).toHaveBeenCalledWith(
+        'owner-1',
+        expect.anything(),
+      );
+
+      // The owner is latched by now, so only the collaborator is left.
+      vi.clearAllMocks();
+      await tick(
+        [
+          {
+            ...shared,
+            notifications: [{ userId: 'owner-1' }],
+          },
+        ],
+        new Date('2024-06-10T21:00:00Z'),
+      );
+      expect(pushService.sendNotification).toHaveBeenCalledTimes(1);
+      expect(pushService.sendNotification).toHaveBeenCalledWith(
+        'user-2',
+        expect.anything(),
+      );
+
+      vi.useRealTimers();
+    });
+
+    it('never reminds the same person about the same task twice', async () => {
+      await tick(
+        [pendingTask({ notifications: [{ userId: 'owner-1' }] })],
+        new Date('2024-06-10T09:00:00Z'),
+      );
+
+      expect(pushService.sendNotification).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it("applies the user's per-task-type time over their base time", async () => {
+      schedulesService.getUserNotificationTimes.mockResolvedValue({
+        base: { hour: 21, minute: 0 },
+        overrides: { watering: { hour: 7, minute: 0 } },
+      });
+
+      await tick([pendingTask()], new Date('2024-06-10T07:00:00Z'));
+
+      expect(pushService.sendNotification).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+
+    it('lets a time pinned on the plant beat every preference', async () => {
+      schedulesService.getMergedSchedules.mockResolvedValue(
+        mockSchedules.map((s) =>
+          s.taskType === 'watering' ? { ...s, hour: 6, minute: 0 } : s,
+        ),
+      );
+      schedulesService.getUserNotificationTimes.mockResolvedValue({
+        base: { hour: 21, minute: 0 },
+        overrides: { watering: { hour: 7, minute: 0 } },
+      });
+
+      await tick([pendingTask()], new Date('2024-06-10T06:00:00Z'));
+
+      expect(pushService.sendNotification).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+
+    it('waits for the next day when the task appears after the time has passed', async () => {
+      const afternoon = pendingTask({
+        createdAt: new Date('2024-06-10T14:00:00Z'),
+        dueAt: new Date('2024-06-10T14:00:00Z'),
+      });
+
+      await tick([afternoon], new Date('2024-06-10T23:59:00Z'));
+      expect(pushService.sendNotification).not.toHaveBeenCalled();
+
+      await tick([afternoon], new Date('2024-06-11T09:00:00Z'));
+      expect(pushService.sendNotification).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+
+    it('does not notify a follow-up task before it is due', async () => {
+      // TasksService.complete() creates the next task immediately with a dueAt
+      // one interval out; anchoring on createdAt would push days early.
+      const followUp = pendingTask({
+        createdAt: new Date('2024-06-10T14:00:00Z'),
+        dueAt: new Date('2024-06-13T09:00:00Z'),
+      });
+
+      await tick([followUp], new Date('2024-06-11T09:00:00Z'));
+      expect(pushService.sendNotification).not.toHaveBeenCalled();
+
+      await tick([followUp], new Date('2024-06-13T09:00:00Z'));
+      expect(pushService.sendNotification).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+
+    it('latches even when the push fails, so it cannot loop', async () => {
+      pushService.sendNotification.mockRejectedValue(new Error('endpoint gone'));
+
+      await tick([pendingTask()], new Date('2024-06-10T09:00:00Z'));
+
+      expect(prisma.taskNotification.create).toHaveBeenCalledWith({
+        data: {
+          taskId: 'task-1',
+          userId: 'owner-1',
+          notifiedAt: expect.any(Date),
+        },
+      });
+
+      vi.useRealTimers();
+    });
+
+    it('skips tasks whose schedule is disabled', async () => {
+      schedulesService.getMergedSchedules.mockResolvedValue(
+        mockSchedules.map((s) => ({
+          ...s,
+          enabled: s.taskType !== 'watering',
+        })),
+      );
+
+      await tick([pendingTask()], new Date('2024-06-10T09:00:00Z'));
+
+      expect(pushService.sendNotification).not.toHaveBeenCalled();
+      expect(prisma.taskNotification.create).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it('sends each recipient their own language', async () => {
+      await tick(
+        [
+          pendingTask({
+            plant: { name: 'Ficus', owner, shares: [{ user: collaborator }] },
+          }),
+        ],
+        new Date('2024-06-10T09:00:00Z'),
+      );
+
+      const bodies = pushService.sendNotification.mock.calls.map(
+        (call) => call[1].body,
+      );
+      expect(bodies).toHaveLength(2);
+      expect(bodies[0]).not.toEqual(bodies[1]);
+
+      vi.useRealTimers();
     });
   });
 });

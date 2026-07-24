@@ -170,7 +170,8 @@
     "at": "at",
     "custom": "Custom",
     "reset": "Reset",
-    "none": "No schedule configured"
+    "none": "No schedule configured",
+    "eachOwnTime": "Remind everyone at their own time"
   },
   "settings": {
     "title": "Settings",
@@ -181,7 +182,12 @@
     "notificationsBlocked": "Notifications are blocked. Please allow notifications for this site in your browser settings.",
     "notificationsEnabled": "Notifications are enabled. You will receive reminders when your plants need care.",
     "language": "Language",
-    "languageHint": "Used across the app and in the reminders sent to your devices."
+    "languageHint": "Used across the app and in the reminders sent to your devices.",
+    "notificationTime": "Reminder time",
+    "notificationTimeHint": "When your reminders arrive, in UTC. Only you see this — someone you share a plant with is reminded at their own time.",
+    "notificationTimeBase": "All reminders at",
+    "notificationTimeUseBase": "Same as above",
+    "notificationTimePlantNote": "A plant can pin a time of its own, which replaces these for that plant."
   },
   "admin": {
     "title": "Admin Panel",
@@ -290,7 +296,8 @@
     "schedules": {
       "loadFailed": "Could not load the schedules.",
       "saveFailed": "Could not save the schedule.",
-      "resetFailed": "Could not reset the schedule."
+      "resetFailed": "Could not reset the schedule.",
+      "invalidNotificationTime": "That is not a valid notification time."
     },
     "admin": {
       "loadUsersFailed": "Could not load the users.",

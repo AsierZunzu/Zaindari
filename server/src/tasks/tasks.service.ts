@@ -5,7 +5,10 @@ import {
 } from '@nestjs/common';
 import { TaskType, TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SchedulesService } from '../schedules/schedules.service.js';
+import {
+  SchedulesService,
+  DEFAULT_DUE_TIME,
+} from '../schedules/schedules.service.js';
 import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 
 @Injectable()
@@ -253,15 +256,25 @@ export class TasksService {
     return skippedTask;
   }
 
+  /**
+   * A due date is one shared fact about a task, so it falls back to a fixed
+   * hour rather than to any collaborator's reminder preference — that only
+   * decides when each of them is pushed.
+   */
   private calculateNextDueAt(
     from: Date,
     intervalDays: number,
-    hour: number,
-    minute: number,
+    hour: number | null,
+    minute: number | null,
   ): Date {
     const next = new Date(from);
     next.setUTCDate(next.getUTCDate() + intervalDays);
-    next.setUTCHours(hour, minute, 0, 0);
+    next.setUTCHours(
+      hour ?? DEFAULT_DUE_TIME.hour,
+      minute ?? DEFAULT_DUE_TIME.minute,
+      0,
+      0,
+    );
     return next;
   }
 }

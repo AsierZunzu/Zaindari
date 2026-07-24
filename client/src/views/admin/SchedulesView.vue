@@ -40,8 +40,6 @@ async function saveSchedule(schedule: DefaultSchedule) {
   try {
     await adminApi.updateSchedule(schedule.taskType, {
       intervalDays: schedule.intervalDays,
-      hour: schedule.hour,
-      minute: schedule.minute,
     })
     success.value = t('admin.schedules.updated', {
       type: taskTypeLabel(schedule.taskType as TaskType),
@@ -52,16 +50,6 @@ async function saveSchedule(schedule: DefaultSchedule) {
   } finally {
     saving.value = null
   }
-}
-
-function formatTime(hour: number, minute: number): string {
-  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-}
-
-function parseTime(timeStr: string, schedule: DefaultSchedule) {
-  const [h, m] = timeStr.split(':').map(Number)
-  schedule.hour = h
-  schedule.minute = m
 }
 </script>
 
@@ -106,17 +94,6 @@ function parseTime(timeStr: string, schedule: DefaultSchedule) {
               class="w-16 rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400"
             />
             <span class="text-xs text-gray-500">{{ $t('schedules.days') }}</span>
-          </div>
-
-          <!-- Time -->
-          <div class="flex items-center gap-1">
-            <span class="text-xs text-gray-500">{{ $t('schedules.at') }}</span>
-            <input
-              type="time"
-              :value="formatTime(schedule.hour, schedule.minute)"
-              @change="(e: Event) => parseTime((e.target as HTMLInputElement).value, schedule)"
-              class="rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400"
-            />
           </div>
 
           <!-- Save button -->

@@ -7,10 +7,14 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { TaskType } from '@prisma/client';
 import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
+import { SchedulesService } from '../schedules/schedules.service.js';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly schedulesService: SchedulesService,
+  ) {}
 
   // ── Users ──────────────────────────────────────────────────────────
 
@@ -117,22 +121,20 @@ export class AdminService {
     });
   }
 
-  async updateSchedule(
-    taskType: string,
-    data: { intervalDays?: number; hour?: number; minute?: number },
-  ) {
+  /**
+   * Only the interval: when a reminder is sent is each user's own preference,
+   * refined per task type in their settings.
+   */
+  async updateSchedule(taskType: string, data: { intervalDays?: number }) {
     const schedule = await this.prisma.defaultSchedule.findUnique({
       where: { taskType: taskType as TaskType },
     });
     if (!schedule) {
-      throw new NotFoundException(
-        `Default schedule for ${taskType} not found`,
-      );
+      throw new NotFoundException(`Default schedule for ${taskType} not found`);
     }
 
-    return this.prisma.defaultSchedule.update({
-      where: { taskType: taskType as TaskType },
-      data,
+    return this.schedulesService.setDefaultSchedule(taskType as TaskType, {
+      intervalDays: data.intervalDays ?? schedule.intervalDays,
     });
   }
 
