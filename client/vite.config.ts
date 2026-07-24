@@ -21,7 +21,31 @@ export default defineConfig({
         display: 'standalone',
         scope: '/',
         start_url: '/',
-        icons: [],
+        // Android will not offer "Install app" at all without both a 192px and
+        // a 512px icon, and it gives no diagnostic when they are missing. The
+        // maskable entry is separate on purpose: Android crops every icon to
+        // the launcher's shape, so a non-maskable one gets shrunk onto a white
+        // tile instead of filling it.
+        icons: [
+          {
+            src: '/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/maskable-icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
