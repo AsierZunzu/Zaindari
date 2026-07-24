@@ -37,4 +37,4 @@ uploads
 **/*.md
 Dockerfile
 .dockerignore
-docker-compose.yml
+compose.yaml
