@@ -85,9 +85,14 @@ class ApiClient {
   }
 
   private sendRequest(method: string, url: string, body?: unknown): Promise<Response> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    }
+    const isForm = body instanceof FormData
+
+    // A multipart body must not carry a Content-Type we wrote: the browser has
+    // to set it itself so it can append the boundary, and overriding it makes
+    // the server unable to parse a request that otherwise looks fine.
+    const headers: Record<string, string> = isForm
+      ? {}
+      : { 'Content-Type': 'application/json' }
 
     const token = this.getToken()
     if (token) {
@@ -98,7 +103,7 @@ class ApiClient {
       method,
       headers,
       credentials: 'same-origin',
-      body: body ? JSON.stringify(body) : undefined,
+      body: isForm ? body : body ? JSON.stringify(body) : undefined,
     }).catch((err) => {
       throw new NetworkError(err)
     })
@@ -180,8 +185,36 @@ class ApiClient {
     return response.blob()
   }
 
+  /**
+   * Fetches a binary resource along with the filename the server named it.
+   *
+   * Separate from `getBlob` because a download needs the `Content-Disposition`
+   * the server sent, and a Blob alone has thrown it away. Goes through
+   * `fetchAuthed`, so an expired access token is refreshed rather than turning
+   * a 30 MB download into a silent sign-out.
+   */
+  async getFile(url: string, fallbackFilename: string): Promise<{ blob: Blob; filename: string }> {
+    const response = await this.fetchAuthed('GET', url)
+
+    if (!response.ok) {
+      // Errors on this route are still JSON, so decode them the usual way to
+      // keep the translatable code rather than reporting a broken download.
+      return this.parse(response)
+    }
+
+    return {
+      blob: await response.blob(),
+      filename: filenameFrom(response.headers.get('Content-Disposition')) ?? fallbackFilename,
+    }
+  }
+
   get<T>(url: string): Promise<T> {
     return this.request<T>('GET', url)
+  }
+
+  /** POSTs multipart form data, with the same 401 recovery as every other call. */
+  postForm<T>(url: string, form: FormData): Promise<T> {
+    return this.request<T>('POST', url, form)
   }
 
   post<T>(url: string, body?: unknown): Promise<T> {
@@ -199,6 +232,19 @@ class ApiClient {
   put<T>(url: string, body?: unknown): Promise<T> {
     return this.request<T>('PUT', url, body)
   }
+}
+
+/**
+ * Pulls the filename out of a Content-Disposition header.
+ *
+ * Only the plain `filename="..."` form is read, because that is the only form
+ * this server sends — it reduces the name to ASCII before writing the header,
+ * so there is no RFC 5987 `filename*` twin to prefer. Anything unrecognised
+ * yields null and the caller's own name is used.
+ */
+function filenameFrom(header: string | null): string | null {
+  const match = header?.match(/filename="([^"]+)"/)
+  return match ? match[1] : null
 }
 
 export const api = new ApiClient()

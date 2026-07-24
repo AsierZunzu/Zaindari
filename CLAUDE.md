@@ -88,6 +88,23 @@ Intervals resolve in exactly one place — `SchedulesService.getMergedSchedules(
 ### Images
 Uploaded through multer *memory* storage with a 10 MB `limits.fileSize` cap (the cap must stay in `image-upload.options.ts` — a pipe validator would run only after the file was fully buffered), re-encoded by sharp to WebP at ≤1200px into `uploads/<plantId>/`. Replacing a photo flips the old row's `isCurrent` to false instead of deleting it — the spec requires photo history. Files are served by the authenticated `GET /api/images/:imageId`, so the client cannot use a plain `<img src>`; it fetches blobs and hands over object URLs (`AuthedImage.vue`, `useAuthedImage.ts`).
 
+### Import/export: a bundle is untrusted input
+
+`GET /api/data/export` streams a zip (`manifest.json`, `data.json`, `images/<id>.webp`) built with **yazl**; `POST /api/data/import` reads one with **yauzl**. Mounted at `/api/data`, *not* under `/api/me`, because the service worker's `/api/me` rule is an exact match and a multi-megabyte zip would land in the `NetworkFirst` bucket; `sw.ts` gives `/api/data/` its own `NetworkOnly`.
+
+**Tasks are deliberately not in the format.** A task is live scheduling state — the one-pending-per-(plant, taskType) invariant, a `dueAt` the cron tick reasons about, a per-recipient `TaskNotification` latch. Restoring them would either resurrect a backlog or, because `shouldNotifyNow` anchors on `max(createdAt, dueAt)` and both would be in the past, fire a push per plant on the next tick. An imported plant arrives with no history, which `SchedulerService.createDueTasks` already handles as "no tasks exist — create the first one". Also excluded: credentials, `PushSubscription`, `PlantShare` (points at accounts that don't exist in the target instance), and `DefaultSchedule` (admin-owned).
+
+Export scopes by `ownerId`, not the owner-or-shared rule `PlantsService.findAllForUser` uses — same class of endpoint as `ImagesService.serve`, so the access rule is written out in the service.
+
+On import, everything about the file is hostile until proven otherwise:
+- `bundle.ts` re-derives every value rather than casting, bounds every string, and drops what it doesn't recognise. It also enforces the DB's own invariants ahead of Prisma — one schedule per task type (`@@unique`), at most one `isCurrent` photo.
+- Entry names are matched against `images/<uuid>.webp` and **never joined onto a path**; the path written to disk is server-generated. yauzl independently rejects `..`/absolute names, so a traversal bundle is refused whole — that's mapped to a 400, not left as a 500.
+- Every photo is re-encoded through sharp. `.webp` in an entry name is a claim, not a fact.
+- Ordering is what makes failure survivable: files are written **before** the transaction (sharp on hundreds of images would blow any transaction timeout) and deleted if it rolls back. Replace-mode deletes old photo directories only **after** the commit.
+- `mode` defaults to `append`, so a malformed request can't delete someone's garden. Settings are restored on `replace` only.
+
+Skip reasons come back as `ImportNote` **descriptors**, not English prose — `useImportNotes` words them, exactly as error codes work.
+
 ### Internationalization: the client owns all wording
 Three locales (`en` the source and fallback, `es`, `eu`), all bundled eagerly — a lazy locale chunk that misses the Workbox precache would render an offline app untranslated.
 

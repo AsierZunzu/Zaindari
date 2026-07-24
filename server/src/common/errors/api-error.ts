@@ -35,6 +35,12 @@ export const ERROR_CODES = {
   taskNotFound: 'tasks.notFound',
 
   invalidNotificationTime: 'schedules.invalidNotificationTime',
+
+  noBundleUploaded: 'data.noBundleUploaded',
+  bundleTooLarge: 'data.bundleTooLarge',
+  bundleInvalid: 'data.bundleInvalid',
+  bundleVersionUnsupported: 'data.bundleVersionUnsupported',
+  importFailed: 'data.importFailed',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

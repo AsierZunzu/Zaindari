@@ -30,9 +30,17 @@ cleanupOutdatedCaches()
 // Credentials and session state must never be served from a cache: a stale
 // /api/me would resurrect the previous user's identity. Registered first so it
 // wins over the general /api/ route below.
+//
+// `/api/data/` is here for a different reason: an export is a multi-megabyte
+// zip and an import is a POST, so neither is ever worth replaying. Caching the
+// download would spend the runtime cache's whole 50-entry budget on one
+// response nobody reads twice, evicting the plant and task data the app
+// actually needs offline.
 registerRoute(
   ({ url }) =>
-    url.pathname.startsWith('/api/auth/') || url.pathname === '/api/me',
+    url.pathname.startsWith('/api/auth/') ||
+    url.pathname === '/api/me' ||
+    url.pathname.startsWith('/api/data/'),
   new NetworkOnly(),
 )
 

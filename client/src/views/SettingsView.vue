@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/auth'
 import { SUPPORTED_LOCALES, type Locale } from '../i18n'
 import { refreshDocumentTitle } from '../router'
 import { schedulesApi, type UserNotificationTimes } from '../api/schedules'
+import DataTransfer from '../components/DataTransfer.vue'
 import type { TaskType } from '../types'
 import { taskTypeEmoji } from '../utils/date'
 import { useTaskLabels } from '../composables/useTaskLabels'
@@ -304,5 +305,7 @@ async function toggleNotifications() {
         </p>
       </div>
     </section>
+
+    <DataTransfer />
   </div>
 </template>

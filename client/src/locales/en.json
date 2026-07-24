@@ -187,7 +187,37 @@
     "notificationTimeHint": "When your reminders arrive, in UTC. Only you see this — someone you share a plant with is reminded at their own time.",
     "notificationTimeBase": "All reminders at",
     "notificationTimeUseBase": "Same as above",
-    "notificationTimePlantNote": "A plant can pin a time of its own, which replaces these for that plant."
+    "notificationTimePlantNote": "A plant can pin a time of its own, which replaces these for that plant.",
+    "data": {
+      "title": "Your data",
+      "hint": "Take a copy of everything you own here, or restore one you made earlier.",
+      "exportTitle": "Export",
+      "exportHint": "Downloads your plants, their schedules and every photo as a single zip file.",
+      "exportAction": "Export",
+      "exporting": "Preparing...",
+      "exportDone": "Downloaded {filename}.",
+      "importTitle": "Import",
+      "importHint": "Restore a zip file exported from Zaindari. Tasks are not part of a backup — imported plants start their schedule fresh.",
+      "previewOrigin": "Exported by {user} on {date}.",
+      "statPlants": "Plants",
+      "statPhotos": "Photos",
+      "statReplaced": "Removed",
+      "modeLegend": "How should this be imported?",
+      "modeAppend": "Add to my plants",
+      "modeAppendHint": "Everything in the file is added alongside what you already have.",
+      "modeReplace": "Replace everything",
+      "modeReplaceHint": "Your plants are deleted first, then the backup is restored — including your language and reminder times.",
+      "replaceWarning": "This will permanently delete your {count} existing plant and all of its photos.|This will permanently delete your {count} existing plants and all of their photos.",
+      "replaceConfirm": "I understand this cannot be undone",
+      "importAction": "Import",
+      "importing": "Importing...",
+      "importDone": "Import complete.",
+      "notes": {
+        "photosMissing": "{plant}: {count} photo was not in the file.|{plant}: {count} photos were not in the file.",
+        "photosUnreadable": "{plant}: {count} photo could not be read.|{plant}: {count} photos could not be read.",
+        "localeUnavailable": "The language “{locale}” is not available here, so yours was left unchanged."
+      }
+    }
   },
   "admin": {
     "title": "Admin Panel",
@@ -307,6 +337,14 @@
       "saveConfigFailed": "Could not save the configuration.",
       "saveOidcFailed": "Could not save the OIDC configuration.",
       "deleteOidcFailed": "Could not delete the OIDC configuration."
+    },
+    "data": {
+      "noBundleUploaded": "No backup file was uploaded.",
+      "bundleTooLarge": "Backup must be smaller than {mb} MB.",
+      "bundleInvalid": "This file is not a Zaindari backup, or it is damaged.",
+      "bundleVersionUnsupported": "This backup was made by a newer version of Zaindari (format {version}, this server reads {supported}). Update the server and try again.",
+      "exportFailed": "Could not prepare your export.",
+      "importFailed": "Could not import this backup."
     }
   }
 }

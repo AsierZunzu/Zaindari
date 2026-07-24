@@ -187,7 +187,37 @@
     "notificationTimeHint": "Cuándo te llegan los recordatorios, en UTC. Solo te afecta a ti: quien comparta una planta contigo recibe los suyos a su propia hora.",
     "notificationTimeBase": "Todos los recordatorios a las",
     "notificationTimeUseBase": "Igual que arriba",
-    "notificationTimePlantNote": "Una planta puede fijar su propia hora, que sustituye a estas para esa planta."
+    "notificationTimePlantNote": "Una planta puede fijar su propia hora, que sustituye a estas para esa planta.",
+    "data": {
+      "title": "Tus datos",
+      "hint": "Descarga una copia de todo lo que te pertenece, o restaura una que hicieras antes.",
+      "exportTitle": "Exportar",
+      "exportHint": "Descarga tus plantas, sus programaciones y todas las fotos en un único archivo zip.",
+      "exportAction": "Exportar",
+      "exporting": "Preparando...",
+      "exportDone": "Se ha descargado {filename}.",
+      "importTitle": "Importar",
+      "importHint": "Restaura un archivo zip exportado desde Zaindari. Las tareas no forman parte de la copia: las plantas importadas empiezan su programación de cero.",
+      "previewOrigin": "Exportado por {user} el {date}.",
+      "statPlants": "Plantas",
+      "statPhotos": "Fotos",
+      "statReplaced": "Eliminadas",
+      "modeLegend": "¿Cómo quieres importarlo?",
+      "modeAppend": "Añadir a mis plantas",
+      "modeAppendHint": "Todo lo que hay en el archivo se añade a lo que ya tienes.",
+      "modeReplace": "Reemplazarlo todo",
+      "modeReplaceHint": "Primero se eliminan tus plantas y después se restaura la copia, incluidos tu idioma y tus horas de aviso.",
+      "replaceWarning": "Esto eliminará de forma permanente tu {count} planta actual y todas sus fotos.|Esto eliminará de forma permanente tus {count} plantas actuales y todas sus fotos.",
+      "replaceConfirm": "Entiendo que esto no se puede deshacer",
+      "importAction": "Importar",
+      "importing": "Importando...",
+      "importDone": "Importación completada.",
+      "notes": {
+        "photosMissing": "{plant}: {count} foto no estaba en el archivo.|{plant}: {count} fotos no estaban en el archivo.",
+        "photosUnreadable": "{plant}: no se ha podido leer {count} foto.|{plant}: no se han podido leer {count} fotos.",
+        "localeUnavailable": "El idioma «{locale}» no está disponible aquí, así que el tuyo no ha cambiado."
+      }
+    }
   },
   "admin": {
     "title": "Panel de administración",
@@ -307,6 +337,14 @@
       "saveConfigFailed": "No se ha podido guardar la configuración.",
       "saveOidcFailed": "No se ha podido guardar la configuración de OIDC.",
       "deleteOidcFailed": "No se ha podido eliminar la configuración de OIDC."
+    },
+    "data": {
+      "noBundleUploaded": "No se ha subido ningún archivo de copia.",
+      "bundleTooLarge": "La copia debe ocupar menos de {mb} MB.",
+      "bundleInvalid": "Este archivo no es una copia de Zaindari, o está dañado.",
+      "bundleVersionUnsupported": "Esta copia se hizo con una versión más reciente de Zaindari (formato {version}, este servidor lee {supported}). Actualiza el servidor e inténtalo de nuevo.",
+      "exportFailed": "No se ha podido preparar la exportación.",
+      "importFailed": "No se ha podido importar esta copia."
     }
   }
 }

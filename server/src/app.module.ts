@@ -11,6 +11,7 @@ import { TasksModule } from './tasks/tasks.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { PushModule } from './push/push.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { DataTransferModule } from './data-transfer/data-transfer.module.js';
 import { HealthController } from './health.controller.js';
 
 @Module({
@@ -29,6 +30,7 @@ import { HealthController } from './health.controller.js';
     DashboardModule,
     PushModule,
     AdminModule,
+    DataTransferModule,
   ],
   controllers: [HealthController],
 })

@@ -187,7 +187,37 @@
     "notificationTimeHint": "Noiz iristen zaizkizun abisuak, UTC ordutegian. Zuri baino ez dagokizu: landare bat zurekin partekatzen duenak bere orduan jasoko ditu bereak.",
     "notificationTimeBase": "Abisu guztiak ordu honetan:",
     "notificationTimeUseBase": "Goikoaren berdina",
-    "notificationTimePlantNote": "Landare batek bere ordua finka dezake, eta hauen ordez erabiliko da landare horretarako."
+    "notificationTimePlantNote": "Landare batek bere ordua finka dezake, eta hauen ordez erabiliko da landare horretarako.",
+    "data": {
+      "title": "Zure datuak",
+      "hint": "Egin zurea den guztiaren kopia bat, edo leheneratu lehenago egindako bat.",
+      "exportTitle": "Esportatu",
+      "exportHint": "Zure landareak, haien programazioak eta argazki guztiak zip fitxategi bakar batean deskargatzen ditu.",
+      "exportAction": "Esportatu",
+      "exporting": "Prestatzen...",
+      "exportDone": "{filename} deskargatu da.",
+      "importTitle": "Inportatu",
+      "importHint": "Leheneratu Zaindaritik esportatutako zip fitxategi bat. Zereginak ez dira kopian sartzen: inportatutako landareek programazioa hutsetik hasten dute.",
+      "previewOrigin": "{user} erabiltzaileak esportatua, {date}.",
+      "statPlants": "Landareak",
+      "statPhotos": "Argazkiak",
+      "statReplaced": "Kenduak",
+      "modeLegend": "Nola inportatu nahi duzu?",
+      "modeAppend": "Gehitu nire landareei",
+      "modeAppendHint": "Fitxategiko guztia dagoeneko duzunari gehitzen zaio.",
+      "modeReplace": "Ordezkatu dena",
+      "modeReplaceHint": "Zure landareak ezabatzen dira lehenik, eta gero kopia leheneratzen da, zure hizkuntza eta abisu-orduak barne.",
+      "replaceWarning": "Honek betiko ezabatuko ditu dituzun {count} landarea eta haren argazki guztiak.|Honek betiko ezabatuko ditu dituzun {count} landareak eta haien argazki guztiak.",
+      "replaceConfirm": "Ulertzen dut hau ezin dela desegin",
+      "importAction": "Inportatu",
+      "importing": "Inportatzen...",
+      "importDone": "Inportazioa osatu da.",
+      "notes": {
+        "photosMissing": "{plant}: {count} argazki ez zegoen fitxategian.|{plant}: {count} argazki ez zeuden fitxategian.",
+        "photosUnreadable": "{plant}: ezin izan da {count} argazki irakurri.|{plant}: ezin izan dira {count} argazki irakurri.",
+        "localeUnavailable": "“{locale}” hizkuntza ez dago erabilgarri hemen, beraz zurea ez da aldatu."
+      }
+    }
   },
   "admin": {
     "title": "Administrazio-panela",
@@ -307,6 +337,14 @@
       "saveConfigFailed": "Ezin izan da konfigurazioa gorde.",
       "saveOidcFailed": "Ezin izan da OIDC konfigurazioa gorde.",
       "deleteOidcFailed": "Ezin izan da OIDC konfigurazioa ezabatu."
+    },
+    "data": {
+      "noBundleUploaded": "Ez da kopia-fitxategirik igo.",
+      "bundleTooLarge": "Kopiak {mb} MB baino gutxiago izan behar du.",
+      "bundleInvalid": "Fitxategi hau ez da Zaindariren kopia bat, edo hondatuta dago.",
+      "bundleVersionUnsupported": "Kopia hau Zaindariren bertsio berriago batekin egin zen ({version} formatua; zerbitzari honek {supported} irakurtzen du). Eguneratu zerbitzaria eta saiatu berriro.",
+      "exportFailed": "Ezin izan da esportazioa prestatu.",
+      "importFailed": "Ezin izan da kopia hau inportatu."
     }
   }
 }
