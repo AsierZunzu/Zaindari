@@ -1,4 +1,4 @@
-import type { TaskWithPlant } from '../types'
+import type { TaskType, TaskWithPlant } from '../types'
 
 /**
  * Agenda and calendar grouping.
@@ -211,6 +211,30 @@ export function buildMonthGrid(
   }
 
   return weeks
+}
+
+export interface DayMarker {
+  taskType: TaskType
+  /** Distinct plants with an active task of this type, in due order. */
+  plants: string[]
+}
+
+/**
+ * One marker per distinct task type on a day — four dots beats twelve identical
+ * droplets — carrying the plants behind it so the view can name them on hover.
+ * Settled tasks are left out: the marker stands for work still to do.
+ */
+export function dayMarkers(cell: CalendarCell): DayMarker[] {
+  const byType = new Map<TaskType, string[]>()
+  for (const task of cell.tasks) {
+    if (!isActive(task)) continue
+    const plants = byType.get(task.taskType)
+    // The same plant can hold only one active task per type, but a day can
+    // still repeat a name across statuses — dedupe so the tooltip doesn't.
+    if (!plants) byType.set(task.taskType, [task.plant.name])
+    else if (!plants.includes(task.plant.name)) plants.push(task.plant.name)
+  }
+  return [...byType].map(([taskType, plants]) => ({ taskType, plants }))
 }
 
 /** Bounds of the month grid, so the feed can be fetched for exactly what's shown. */

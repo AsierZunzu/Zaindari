@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import type { Task, TaskWithPlant } from '../types'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import type { Task, TaskType, TaskWithPlant } from '../types'
 import { taskTypeEmoji } from '../utils/date'
 import {
   buildMonthGrid,
   dayKey,
   dayLabel,
+  dayMarkers,
   isActive,
   sameDay,
   startOfDay,
   type CalendarCell,
+  type DayMarker,
 } from '../utils/agenda'
 import { useTaskLabels } from '../composables/useTaskLabels'
 import TaskRow from './TaskRow.vue'
@@ -24,7 +26,7 @@ const emit = defineEmits<{
   'task-updated': [task: Task]
 }>()
 
-const { dayHeading, monthHeading, weekdayNames } = useTaskLabels()
+const { dayHeading, markerPlants, monthHeading, taskType, weekdayNames } = useTaskLabels()
 
 // Derived from the locale rather than hardcoded. The grid stays Monday-first
 // (correct for en/es/eu); only the names change.
@@ -32,18 +34,31 @@ const weekdays = computed(() => weekdayNames())
 const selectedKey = ref(dayKey(new Date()))
 
 const weeks = computed(() => buildMonthGrid(props.month, props.tasks))
+const cells = computed(() => weeks.value.flat())
 
 const selectedCell = computed<CalendarCell | undefined>(() =>
-  weeks.value.flat().find((cell) => cell.key === selectedKey.value),
+  cells.value.find((cell) => cell.key === selectedKey.value),
 )
+
+/** The day whose marker popover is open, if any. */
+const openKey = ref<string | null>(null)
+/** The marker under the pointer. Set on `mouseenter`, so it shows with no delay. */
+const hovered = ref<{ key: string; taskType: TaskType } | null>(null)
+const gridRef = ref<HTMLElement | null>(null)
+/**
+ * `pointerdown` fires before `click` and is the only place the input device is
+ * still known — by click time a tap and a mouse press look identical.
+ */
+const lastPointerType = ref('mouse')
 
 // Paging to another month leaves the previously selected day off the grid, so
 // land the selection on that month's first day instead of showing nothing.
 watch(
   () => props.month,
   (month) => {
+    openKey.value = null
     const today = new Date()
-    const onScreen = weeks.value.flat().some((c) => c.key === selectedKey.value && c.inMonth)
+    const onScreen = cells.value.some((c) => c.key === selectedKey.value && c.inMonth)
     if (onScreen) return
     selectedKey.value = dayKey(
       month.getMonth() === today.getMonth() && month.getFullYear() === today.getFullYear()
@@ -65,11 +80,75 @@ function goToToday() {
   }
 }
 
-/** Distinct task types on a day — four dots beats twelve identical droplets. */
-function markers(cell: CalendarCell): string[] {
-  const types = new Set(cell.tasks.filter(isActive).map((t) => t.taskType))
-  return [...types].map(taskTypeEmoji)
+function rememberPointer(event: PointerEvent) {
+  lastPointerType.value = event.pointerType || 'mouse'
 }
+
+/**
+ * Selecting a day also reveals its plants — but only for the people who cannot
+ * hover. `title` never fires on touch and a keyboard user has no pointer at
+ * all; a mouse click already had its tooltip, so popping one open there would
+ * just be noise. Tapping the same day again dismisses it.
+ */
+function selectDay(cell: CalendarCell, event: MouseEvent) {
+  selectedKey.value = cell.key
+  // A keyboard activation arrives as a click with no clicks behind it.
+  const hoverless = lastPointerType.value === 'touch' || event.detail === 0
+  const reopening = openKey.value !== cell.key
+  openKey.value = hoverless && reopening && dayMarkers(cell).length > 0 ? cell.key : null
+}
+
+/**
+ * What the tooltip should say for a cell, or nothing at all.
+ *
+ * Hovering is the precise gesture — it names the one marker under the pointer.
+ * The tap/keyboard popover can't be precise (the emoji are far too small to be
+ * their own targets), so it lists the whole day instead.
+ */
+function tooltipMarkers(cell: CalendarCell): DayMarker[] {
+  const markers = dayMarkers(cell)
+  if (hovered.value?.key === cell.key) {
+    return markers.filter((m) => m.taskType === hovered.value!.taskType)
+  }
+  return openKey.value === cell.key ? markers : []
+}
+
+/** Edge columns would push a centred popover off the screen. */
+function popoverAlign(index: number): string {
+  const column = index % 7
+  if (column === 0) return 'left-0'
+  if (column === 6) return 'right-0'
+  return 'left-1/2 -translate-x-1/2'
+}
+
+/** The little notch has to sit over the cell it belongs to, not the tooltip's centre. */
+function arrowAlign(index: number): string {
+  const column = index % 7
+  if (column === 0) return 'left-4'
+  if (column === 6) return 'right-4'
+  return 'left-1/2 -ml-1'
+}
+
+function onDocumentClick(event: MouseEvent) {
+  if (!openKey.value) return
+  // Clicks inside the grid are the grid's own business — `selectDay` decides.
+  if (gridRef.value?.contains(event.target as Node)) return
+  openKey.value = null
+}
+
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') openKey.value = null
+}
+
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick)
+  document.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick)
+  document.removeEventListener('keydown', onKeydown)
+})
 
 function hasOverdue(cell: CalendarCell): boolean {
   const today = startOfDay(new Date())
@@ -121,9 +200,9 @@ function cellClass(cell: CalendarCell): string {
       </button>
     </div>
 
-    <!-- Month grid -->
-    <div class="mt-3 overflow-hidden rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-100">
-      <div class="grid grid-cols-7 gap-1">
+    <!-- Month grid. No `overflow-hidden`: it would clip the marker popover. -->
+    <div class="mt-3 rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-100">
+      <div ref="gridRef" class="grid grid-cols-7 gap-1">
         <div
           v-for="weekday in weekdays"
           :key="weekday"
@@ -132,20 +211,54 @@ function cellClass(cell: CalendarCell): string {
           {{ weekday.charAt(0) }}<span class="hidden sm:inline">{{ weekday.slice(1) }}</span>
         </div>
 
-        <button
-          v-for="cell in weeks.flat()"
-          :key="cell.key"
-          class="flex aspect-square flex-col items-center justify-start rounded-lg p-1 transition-colors hover:bg-gray-100"
-          :class="cellClass(cell)"
-          @click="selectedKey = cell.key"
-        >
-          <span class="text-xs font-medium" :class="cell.isToday ? 'font-bold text-primary-700' : ''">
-            {{ cell.date.getDate() }}
-          </span>
-          <span class="mt-0.5 flex flex-wrap justify-center gap-px overflow-hidden text-[9px] leading-none sm:text-xs">
-            <span v-for="marker in markers(cell)" :key="marker">{{ marker }}</span>
-          </span>
-        </button>
+        <div v-for="(cell, index) in cells" :key="cell.key" class="relative">
+          <button
+            class="flex aspect-square w-full flex-col items-center justify-start rounded-lg p-1 transition-colors hover:bg-gray-100"
+            :class="cellClass(cell)"
+            :aria-expanded="dayMarkers(cell).length > 0 ? openKey === cell.key : undefined"
+            @pointerdown="rememberPointer"
+            @click="selectDay(cell, $event)"
+          >
+            <span class="text-xs font-medium" :class="cell.isToday ? 'font-bold text-primary-700' : ''">
+              {{ cell.date.getDate() }}
+            </span>
+            <span class="mt-0.5 flex flex-wrap justify-center gap-px overflow-hidden text-[9px] leading-none sm:text-xs">
+              <span
+                v-for="marker in dayMarkers(cell)"
+                :key="marker.taskType"
+                class="cursor-help"
+                @mouseenter="hovered = { key: cell.key, taskType: marker.taskType }"
+                @mouseleave="hovered = null"
+                >{{ taskTypeEmoji(marker.taskType) }}</span
+              >
+            </span>
+          </button>
+
+          <!--
+            Hand-rolled rather than a `title`: the native tooltip waits about a
+            second, renders in the browser's own chrome, and cannot be styled.
+            `pointer-events-none` keeps it from stealing the hover that spawned it.
+          -->
+          <div
+            v-if="tooltipMarkers(cell).length > 0"
+            role="tooltip"
+            class="pointer-events-none absolute top-full z-20 mt-1.5 w-max max-w-[12rem] rounded-lg bg-white px-2.5 py-1.5 text-left shadow-lg ring-1 ring-black/5"
+            :class="popoverAlign(index)"
+          >
+            <span
+              class="absolute -top-1 h-2 w-2 rotate-45 border-l border-t border-black/5 bg-white"
+              :class="arrowAlign(index)"
+            />
+            <div class="relative space-y-1">
+              <div v-for="marker in tooltipMarkers(cell)" :key="marker.taskType">
+                <p class="text-[11px] font-semibold leading-tight text-gray-900">
+                  {{ taskTypeEmoji(marker.taskType) }} {{ taskType(marker.taskType) }}
+                </p>
+                <p class="text-[11px] leading-tight text-gray-500">{{ markerPlants(marker) }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

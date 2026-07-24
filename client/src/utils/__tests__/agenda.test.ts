@@ -5,6 +5,7 @@ import {
   buildMonthGrid,
   dayKey,
   dayLabel,
+  dayMarkers,
   groupByDay,
   monthRange,
 } from '../agenda'
@@ -184,6 +185,47 @@ describe('buildMonthGrid', () => {
     const weeks = buildMonthGrid(new Date('2026-06-01T00:00:00'), [], NOW)
     expect(weeks[0][0].date.getDate()).toBe(1)
     expect(weeks[0][0].inMonth).toBe(true)
+  })
+})
+
+describe('dayMarkers', () => {
+  function cellFor(tasks: TaskWithPlant[]) {
+    return buildMonthGrid(new Date('2026-07-01T00:00:00'), tasks, NOW)
+      .flat()
+      .find((c) => c.key === '2026-07-23')!
+  }
+
+  it('collapses a day to one marker per task type, naming every plant behind it', () => {
+    const markers = dayMarkers(
+      cellFor([
+        task({ id: 'a', dueAt: '2026-07-23T08:00:00' }),
+        task({
+          id: 'b',
+          dueAt: '2026-07-23T09:00:00',
+          plantId: 'plant-2',
+          plant: { id: 'plant-2', name: 'Ficus', location: null },
+        }),
+        task({ id: 'c', dueAt: '2026-07-23T10:00:00', taskType: 'misting' }),
+      ]),
+    )
+
+    expect(markers).toEqual([
+      { taskType: 'watering', plants: ['Monstera', 'Ficus'] },
+      { taskType: 'misting', plants: ['Monstera'] },
+    ])
+  })
+
+  it('ignores settled tasks and never repeats a plant', () => {
+    const markers = dayMarkers(
+      cellFor([
+        task({ id: 'a', dueAt: '2026-07-23T08:00:00', status: 'done' }),
+        task({ id: 'b', dueAt: '2026-07-23T09:00:00', status: 'skipped' }),
+        task({ id: 'c', dueAt: '2026-07-23T10:00:00', status: 'snoozed' }),
+        task({ id: 'd', dueAt: '2026-07-23T11:00:00' }),
+      ]),
+    )
+
+    expect(markers).toEqual([{ taskType: 'watering', plants: ['Monstera'] }])
   })
 })
 

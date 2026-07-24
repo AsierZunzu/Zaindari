@@ -1,6 +1,7 @@
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Task, TaskType } from '../types'
-import type { DayLabel } from '../utils/agenda'
+import type { DayLabel, DayMarker } from '../utils/agenda'
 import {
   relativeDateMessage,
   taskStatusKey,
@@ -15,7 +16,11 @@ import {
  * components never have to reason about plural forms or date formats.
  */
 export function useTaskLabels() {
-  const { t, d } = useI18n()
+  const { t, d, locale } = useI18n()
+
+  /** "A, B and C" the way the active language writes a list — Spanish uses
+   *  "y" and Basque "eta", so a hardcoded join would read as English. */
+  const listFormatter = computed(() => new Intl.ListFormat(locale.value, { style: 'long' }))
 
   /** "Due today", "Overdue by 3 days", … */
   function relativeDate(dueAt: string): string {
@@ -44,6 +49,11 @@ export function useTaskLabels() {
     return d(label.date, label.sameYear ? 'weekdayShort' : 'weekdayShortWithYear')
   }
 
+  /** "Monstera and Ficus" — the plants behind one calendar marker. */
+  function markerPlants(marker: DayMarker): string {
+    return listFormatter.value.format(marker.plants)
+  }
+
   function monthHeading(month: Date): string {
     return d(month, 'monthYear')
   }
@@ -69,6 +79,7 @@ export function useTaskLabels() {
     taskStatus,
     dueTime,
     dayHeading,
+    markerPlants,
     monthHeading,
     weekdayNames,
   }
