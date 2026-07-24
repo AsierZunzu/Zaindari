@@ -1,6 +1,9 @@
 services:
   zaindari:
-    build: .
+    # Published by the `docker` CI job on every push to main. Working on the
+    # code instead of deploying it? `compose.override.yaml` (gitignored, see
+    # `compose.override.example.yaml`) swaps this for a local build.
+    image: ghcr.io/asierzunzu/zaindari:${ZAINDARI_IMAGE_TAG:-main}
     ports:
       - "${PORT:-3000}:3000"
     environment:

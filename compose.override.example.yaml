@@ -1,0 +1,22 @@
+# Local development overlay — copy to `compose.override.yaml` to use it:
+#
+#     cp compose.override.example.yaml compose.override.yaml
+#
+# Docker Compose merges a file named `compose.override.yaml` into
+# `compose.yaml` automatically, so no `-f` flags are needed. The copy is
+# gitignored, so edit it freely: machine-specific ports, bind mounts and
+# throwaway credentials belong there and will not be committed.
+#
+# This template only replaces the published image with a build of the working
+# tree. Rebuild after changing code with `docker compose up --build`.
+
+services:
+  zaindari:
+    build: .
+    # Tagged separately from the ghcr.io reference in compose.yaml so a local
+    # build never overwrites the published image in the daemon's cache — you
+    # can go back to the real thing by deleting compose.override.yaml.
+    image: zaindari:local
+    # A local-only tag exists nowhere to be pulled from; build it instead of
+    # asking the registry for it.
+    pull_policy: build

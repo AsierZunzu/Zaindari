@@ -2,6 +2,10 @@ node_modules/
 dist/
 build/
 .env
+
+# Local Compose overlay; the tracked template is compose.override.example.yaml
+compose.override.yaml
+compose.override.yml
 *.log
 uploads/
 server/static/
