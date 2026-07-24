@@ -408,6 +408,41 @@ describe('SchedulerService', () => {
       vi.useRealTimers();
     });
 
+    it('notifies an owner who also holds a share exactly once', async () => {
+      await tick(
+        [
+          pendingTask({
+            plant: { name: 'Ficus', owner, shares: [{ user: owner }] },
+          }),
+        ],
+        new Date('2024-06-10T09:00:00Z'),
+      );
+
+      expect(pushService.sendNotification).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+
+    it('still notifies the others when one recipient fails', async () => {
+      pushService.sendNotification.mockRejectedValueOnce(
+        new Error('push endpoint gone'),
+      );
+
+      await tick(
+        [
+          pendingTask({
+            plant: { name: 'Ficus', owner, shares: [{ user: collaborator }] },
+          }),
+        ],
+        new Date('2024-06-10T09:00:00Z'),
+      );
+
+      expect(pushService.sendNotification).toHaveBeenCalledTimes(2);
+      expect(prisma.taskNotification.create).toHaveBeenCalledTimes(2);
+
+      vi.useRealTimers();
+    });
+
     it('sends each recipient their own language', async () => {
       await tick(
         [

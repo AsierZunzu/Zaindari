@@ -120,39 +120,4 @@ export class PushService implements OnModuleInit {
       this.logger.warn(`${failed.length} push notification(s) failed`);
     }
   }
-
-  /**
-   * Takes a factory rather than a finished payload: a shared plant's
-   * collaborators do not necessarily read the same language, so the body has to
-   * be rendered once per recipient in their own locale.
-   */
-  async notifyPlantCollaborators(
-    plantId: string,
-    buildPayload: (locale: string) => NotificationPayload,
-  ) {
-    const plant = await this.prisma.plant.findUnique({
-      where: { id: plantId },
-      include: {
-        owner: { select: { id: true, locale: true } },
-        shares: { include: { user: { select: { id: true, locale: true } } } },
-      },
-    });
-
-    if (!plant) return;
-
-    // Map, not Set: the owner may also appear as a share, and we need one
-    // locale per distinct user.
-    const recipients = new Map<string, string>([
-      [plant.owner.id, plant.owner.locale],
-    ]);
-    for (const share of plant.shares) {
-      recipients.set(share.user.id, share.user.locale);
-    }
-
-    await Promise.allSettled(
-      [...recipients].map(([userId, locale]) =>
-        this.sendNotification(userId, buildPayload(locale)),
-      ),
-    );
-  }
 }
