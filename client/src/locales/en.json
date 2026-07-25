@@ -171,7 +171,12 @@
     "custom": "Custom",
     "reset": "Reset",
     "none": "No schedule configured",
-    "eachOwnTime": "Remind everyone at their own time"
+    "eachOwnTime": "Remind everyone at their own time",
+    "enabled": "On",
+    "disabled": "Off",
+    "disabledHint": "Not scheduled for this plant",
+    "enable": "Turn on",
+    "disable": "Turn off"
   },
   "settings": {
     "title": "Settings",

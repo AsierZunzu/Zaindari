@@ -171,7 +171,12 @@
     "custom": "Pertsonalizatua",
     "reset": "Berrezarri",
     "none": "Ez dago ordutegirik konfiguratuta",
-    "eachOwnTime": "Abisatu bakoitzari bere orduan"
+    "eachOwnTime": "Abisatu bakoitzari bere orduan",
+    "enabled": "Aktibatuta",
+    "disabled": "Desaktibatuta",
+    "disabledHint": "Ez dago landare honetarako programatuta",
+    "enable": "Aktibatu",
+    "disable": "Desaktibatu"
   },
   "settings": {
     "title": "Ezarpenak",

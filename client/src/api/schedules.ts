@@ -34,8 +34,14 @@ export const schedulesApi = {
     plantId: string,
     taskType: TaskType,
     // A null hour clears the pinned time, handing each collaborator back their
-    // own preference.
-    data: { intervalDays: number; hour: number | null; minute: number | null },
+    // own preference. `enabled: false` takes the task type off this plant's
+    // rotation and discards whatever it had queued; omitting it changes nothing.
+    data: {
+      intervalDays: number
+      hour: number | null
+      minute: number | null
+      enabled?: boolean
+    },
   ): Promise<void> {
     return api.put(`/api/plants/${plantId}/schedules/${taskType}`, data)
   },

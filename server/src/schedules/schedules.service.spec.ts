@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   SchedulesService,
@@ -15,9 +15,16 @@ describe('SchedulesService', () => {
     };
     plantSchedule: {
       findMany: ReturnType<typeof vi.fn>;
+      findUnique: ReturnType<typeof vi.fn>;
       upsert: ReturnType<typeof vi.fn>;
       delete: ReturnType<typeof vi.fn>;
     };
+    task: {
+      deleteMany: ReturnType<typeof vi.fn>;
+      findFirst: ReturnType<typeof vi.fn>;
+      create: ReturnType<typeof vi.fn>;
+    };
+    $transaction: ReturnType<typeof vi.fn>;
     user: {
       findUnique: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
@@ -46,9 +53,18 @@ describe('SchedulesService', () => {
       },
       plantSchedule: {
         findMany: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue(null),
         upsert: vi.fn(),
         delete: vi.fn(),
       },
+      task: {
+        deleteMany: vi.fn(),
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({}),
+      },
+      // The real client resolves the array; the mocked members return
+      // undefined, so awaiting them is enough to mirror that.
+      $transaction: vi.fn((ops: unknown[]) => Promise.all(ops)),
       user: {
         findUnique: vi
           .fn()
@@ -236,7 +252,177 @@ describe('SchedulesService', () => {
     });
   });
 
+  describe('removePlantSchedule', () => {
+    it('treats dropping a disabled override as a re-enable', async () => {
+      vi.setSystemTime(new Date('2024-06-01T14:00:00Z'));
+      prisma.plantSchedule.findUnique.mockResolvedValue({
+        plantId: 'plant-1',
+        taskType: 'watering',
+        intervalDays: 3,
+        hour: null,
+        minute: null,
+        enabled: false,
+      });
+      prisma.plantSchedule.delete.mockResolvedValue({});
+      // Read back after the delete: no override left, so the inherited
+      // three-day interval decides.
+      prisma.defaultSchedule.findMany.mockResolvedValue(defaultRows);
+      prisma.plantSchedule.findMany.mockResolvedValue([]);
+      prisma.task.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+        status: 'done',
+        completedAt: new Date('2024-01-05T09:00:00Z'),
+        updatedAt: new Date('2024-01-05T09:00:00Z'),
+      });
+
+      await service.removePlantSchedule('plant-1', 'watering');
+
+      const dueAt: Date = prisma.task.create.mock.calls[0][0].data.dueAt;
+      expect(dueAt.getUTCDate()).toBe(1);
+      expect(dueAt.getUTCMonth()).toBe(5);
+
+      vi.useRealTimers();
+    });
+
+    it('creates nothing when the override was already on', async () => {
+      prisma.plantSchedule.findUnique.mockResolvedValue({
+        plantId: 'plant-1',
+        taskType: 'watering',
+        intervalDays: 3,
+        hour: null,
+        minute: null,
+        enabled: true,
+      });
+      prisma.plantSchedule.delete.mockResolvedValue({});
+
+      await service.removePlantSchedule('plant-1', 'watering');
+
+      expect(prisma.task.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe('setPlantSchedule', () => {
+    describe('turning a task type back on', () => {
+      const disabled = {
+        plantId: 'plant-1',
+        taskType: 'watering',
+        intervalDays: 3,
+        hour: null,
+        minute: null,
+        enabled: false,
+      };
+
+      const reEnable = () =>
+        service.setPlantSchedule('plant-1', 'watering', {
+          intervalDays: 3,
+          hour: null,
+          minute: null,
+          enabled: true,
+        });
+
+      beforeEach(() => {
+        vi.setSystemTime(new Date('2024-06-01T14:00:00Z'));
+        prisma.plantSchedule.findUnique.mockResolvedValue(disabled);
+        prisma.plantSchedule.upsert.mockResolvedValue({
+          ...disabled,
+          enabled: true,
+        });
+      });
+
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it('owes the work today, not back when it was switched off', async () => {
+        prisma.task.findFirst
+          // Nothing queued...
+          .mockResolvedValueOnce(null)
+          // ...and the last watering was months ago, before it went quiet.
+          .mockResolvedValueOnce({
+            id: 'task-old',
+            status: 'done',
+            completedAt: new Date('2024-01-05T09:00:00Z'),
+            updatedAt: new Date('2024-01-05T09:00:00Z'),
+          });
+
+        await reEnable();
+
+        const dueAt: Date = prisma.task.create.mock.calls[0][0].data.dueAt;
+        expect(dueAt.getUTCFullYear()).toBe(2024);
+        expect(dueAt.getUTCMonth()).toBe(5); // June
+        expect(dueAt.getUTCDate()).toBe(1);
+        expect(dueAt.getUTCHours()).toBe(9); // DEFAULT_DUE_TIME
+      });
+
+      it('stamps the due time the plant pins, when it pins one', async () => {
+        prisma.plantSchedule.upsert.mockResolvedValue({
+          ...disabled,
+          hour: 7,
+          minute: 30,
+          enabled: true,
+        });
+        prisma.task.findFirst
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({
+            status: 'done',
+            completedAt: new Date('2024-01-05T09:00:00Z'),
+            updatedAt: new Date('2024-01-05T09:00:00Z'),
+          });
+
+        await service.setPlantSchedule('plant-1', 'watering', {
+          intervalDays: 3,
+          hour: 7,
+          minute: 30,
+          enabled: true,
+        });
+
+        const dueAt: Date = prisma.task.create.mock.calls[0][0].data.dueAt;
+        expect(dueAt.getUTCHours()).toBe(7);
+        expect(dueAt.getUTCMinutes()).toBe(30);
+      });
+
+      it('creates nothing when it was off for less than its own interval', async () => {
+        prisma.task.findFirst
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({
+            status: 'done',
+            // A day ago, against a three-day interval: genuinely not due yet.
+            completedAt: new Date('2024-05-31T14:00:00Z'),
+            updatedAt: new Date('2024-05-31T14:00:00Z'),
+          });
+
+        await reEnable();
+
+        expect(prisma.task.create).not.toHaveBeenCalled();
+      });
+
+      it('leaves a plant with no history to the scheduler', async () => {
+        prisma.task.findFirst.mockResolvedValue(null);
+
+        await reEnable();
+
+        expect(prisma.task.create).not.toHaveBeenCalled();
+      });
+
+      it('respects the one-pending-per-task-type invariant', async () => {
+        prisma.task.findFirst.mockResolvedValueOnce({ id: 'task-queued' });
+
+        await reEnable();
+
+        expect(prisma.task.create).not.toHaveBeenCalled();
+      });
+
+      it('does nothing for a schedule that was already on', async () => {
+        prisma.plantSchedule.findUnique.mockResolvedValue({
+          ...disabled,
+          enabled: true,
+        });
+
+        await reEnable();
+
+        expect(prisma.task.create).not.toHaveBeenCalled();
+      });
+    });
+
     it('clears the minute alongside a cleared hour', async () => {
       await service.setPlantSchedule('plant-1', 'watering', {
         intervalDays: 3,
@@ -246,7 +432,70 @@ describe('SchedulesService', () => {
 
       expect(prisma.plantSchedule.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          update: { intervalDays: 3, hour: null, minute: null },
+          update: { intervalDays: 3, hour: null, minute: null, enabled: true },
+        }),
+      );
+    });
+
+    it('drops the queued tasks when a task type is turned off', async () => {
+      await service.setPlantSchedule('plant-1', 'misting', {
+        intervalDays: 2,
+        hour: null,
+        minute: null,
+        enabled: false,
+      });
+
+      expect(prisma.task.deleteMany).toHaveBeenCalledWith({
+        where: {
+          plantId: 'plant-1',
+          taskType: 'misting',
+          status: { in: ['pending', 'snoozed'] },
+        },
+      });
+    });
+
+    it('leaves history alone \u2014 only unaddressed tasks go', async () => {
+      await service.setPlantSchedule('plant-1', 'misting', {
+        intervalDays: 2,
+        hour: null,
+        minute: null,
+        enabled: false,
+      });
+
+      const where = prisma.task.deleteMany.mock.calls[0][0].where;
+      expect(where.status.in).not.toContain('done');
+      expect(where.status.in).not.toContain('skipped');
+    });
+
+    it('does not touch tasks when the schedule stays on', async () => {
+      await service.setPlantSchedule('plant-1', 'watering', {
+        intervalDays: 5,
+        hour: null,
+        minute: null,
+      });
+
+      expect(prisma.task.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps a task type off when only the interval is edited', async () => {
+      prisma.plantSchedule.findUnique.mockResolvedValue({
+        plantId: 'plant-1',
+        taskType: 'misting',
+        intervalDays: 2,
+        hour: null,
+        minute: null,
+        enabled: false,
+      });
+
+      await service.setPlantSchedule('plant-1', 'misting', {
+        intervalDays: 4,
+        hour: null,
+        minute: null,
+      });
+
+      expect(prisma.plantSchedule.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({ enabled: false }),
         }),
       );
     });

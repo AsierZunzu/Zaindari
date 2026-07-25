@@ -121,7 +121,9 @@ export class TasksService {
       },
     });
 
-    if (schedule) {
+    // A disabled task type gets no follow-up: the plant's owner has said this
+    // is not on the rotation any more, and the completion is only history.
+    if (schedule?.enabled) {
       const nextDueAt = this.calculateNextDueAt(
         now,
         schedule.intervalDays,
@@ -253,7 +255,9 @@ export class TasksService {
       },
     });
 
-    if (schedule) {
+    // A disabled task type gets no follow-up: the plant's owner has said this
+    // is not on the rotation any more, and the completion is only history.
+    if (schedule?.enabled) {
       const nextDueAt = this.calculateNextDueAt(
         now,
         schedule.intervalDays,

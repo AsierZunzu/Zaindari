@@ -171,7 +171,12 @@
     "custom": "Personalizado",
     "reset": "Restablecer",
     "none": "Sin horario configurado",
-    "eachOwnTime": "Avisar a cada persona a su hora"
+    "eachOwnTime": "Avisar a cada persona a su hora",
+    "enabled": "Activado",
+    "disabled": "Desactivado",
+    "disabledHint": "No programado para esta planta",
+    "enable": "Activar",
+    "disable": "Desactivar"
   },
   "settings": {
     "title": "Ajustes",

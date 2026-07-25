@@ -61,6 +61,32 @@ async function saveSchedule(schedule: MergedSchedule) {
       intervalDays: schedule.intervalDays,
       hour: ownTime ? (schedule.hour ?? 9) : null,
       minute: ownTime ? (schedule.minute ?? 0) : null,
+      enabled: schedule.enabled,
+    })
+    await fetchSchedules()
+  } catch (e: unknown) {
+    error.value = apiErrorMessage(e, 'errors.schedules.saveFailed')
+  } finally {
+    saving.value = null
+  }
+}
+
+/**
+ * Saves straight away rather than waiting for the row's save button: turning a
+ * task type off also discards the tasks it had queued, so leaving the switch
+ * flipped but unsaved would show a plant that looks off while still nagging.
+ */
+async function toggleEnabled(schedule: MergedSchedule, enabled: boolean) {
+  if (saving.value) return
+  saving.value = schedule.taskType
+  error.value = ''
+  try {
+    const ownTime = usesOwnTime.value[schedule.taskType]
+    await schedulesApi.setPlantSchedule(props.plantId, schedule.taskType, {
+      intervalDays: schedule.intervalDays,
+      hour: ownTime ? (schedule.hour ?? 9) : null,
+      minute: ownTime ? (schedule.minute ?? 0) : null,
+      enabled,
     })
     await fetchSchedules()
   } catch (e: unknown) {
@@ -120,7 +146,22 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
             <span class="text-sm font-medium text-gray-900">{{ taskTypeLabel(taskType) }}</span>
           </div>
 
-          <template v-if="getSchedule(taskType)">
+          <!-- On/off. Off means: create nothing new, drop what was queued. -->
+          <label
+            v-if="getSchedule(taskType)"
+            class="flex items-center gap-1.5 text-xs text-gray-600"
+          >
+            <input
+              type="checkbox"
+              :checked="getSchedule(taskType)!.enabled"
+              :disabled="saving === taskType"
+              class="rounded border-gray-300 text-primary-600 focus:ring-primary-400 disabled:opacity-50"
+              @change="(e: Event) => toggleEnabled(getSchedule(taskType)!, (e.target as HTMLInputElement).checked)"
+            />
+            {{ getSchedule(taskType)!.enabled ? $t('schedules.enabled') : $t('schedules.disabled') }}
+          </label>
+
+          <template v-if="getSchedule(taskType) && getSchedule(taskType)!.enabled">
             <!-- Interval -->
             <div class="flex items-center gap-1">
               <span class="text-xs text-gray-500">{{ $t('schedules.every') }}</span>
@@ -191,6 +232,10 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
               {{ $t('schedules.reset') }}
             </button>
           </template>
+
+          <span v-else-if="getSchedule(taskType)" class="text-xs text-gray-400 italic">
+            {{ $t('schedules.disabledHint') }}
+          </span>
 
           <span v-else class="text-xs text-gray-400 italic">{{ $t('schedules.none') }}</span>
         </div>

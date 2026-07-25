@@ -138,6 +138,36 @@ describe('TasksService', () => {
       vi.useRealTimers();
     });
 
+    it('should not create a follow-up for a task type that is turned off', async () => {
+      const now = new Date('2024-06-01T12:00:00Z');
+      vi.setSystemTime(now);
+
+      schedulesService.getMergedSchedules.mockResolvedValue(
+        mockSchedules.map((s) =>
+          s.taskType === 'watering' ? { ...s, enabled: false } : s,
+        ),
+      );
+
+      const task = {
+        id: 'task-1',
+        plantId: 'plant-1',
+        taskType: 'watering',
+        status: 'pending',
+        dueAt: now,
+        updatedAt: now,
+      };
+      prisma.task.findUnique.mockResolvedValue(task);
+      prisma.task.update.mockResolvedValue({ ...task, status: 'done' });
+
+      const result = await service.complete('task-1', 'user-1');
+
+      // The completion itself is still recorded \u2014 it is history.
+      expect(result.status).toBe('done');
+      expect(prisma.task.create).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
     it('should throw if task is not pending or snoozed', async () => {
       prisma.task.findUnique.mockResolvedValue({
         id: 'task-1',

@@ -33,6 +33,9 @@ export class SchedulesController {
       // or the global one when that is unset too.
       hour: number | null;
       minute: number | null;
+      // Turning this off stops new tasks of this type being created for the
+      // plant and discards the ones already queued. Omitted leaves it as is.
+      enabled?: boolean;
     },
   ) {
     return this.schedulesService.setPlantSchedule(plantId, taskType, body);
