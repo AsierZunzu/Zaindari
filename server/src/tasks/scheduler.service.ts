@@ -62,10 +62,42 @@ export class SchedulerService {
     await this.dispatchNotifications(schedulesFor);
   }
 
+  /**
+   * Creates the initial task for each of the given plants right away, instead of
+   * waiting for the next cron tick to notice them.
+   *
+   * Used after an import: a freshly restored plant has no task history, which is
+   * exactly the "no tasks exist -- create the first one" case `createDueTasks`
+   * already handles, so this reuses that path (and its one-pending-per-plant
+   * invariant) rather than inserting tasks by hand. The cron remains the
+   * backstop: if this is never called, or fails, the plants are picked up within
+   * the minute regardless.
+   */
+  async seedTasksForPlants(plantIds: string[]) {
+    if (plantIds.length === 0) {
+      return;
+    }
+
+    const scheduleCache = new Map<string, MergedSchedule[]>();
+    const schedulesFor = async (plantId: string) => {
+      let schedules = scheduleCache.get(plantId);
+      if (!schedules) {
+        schedules = await this.schedulesService.getMergedSchedules(plantId);
+        scheduleCache.set(plantId, schedules);
+      }
+      return schedules;
+    };
+
+    await this.createDueTasks(schedulesFor, plantIds);
+  }
+
   private async createDueTasks(
     schedulesFor: (plantId: string) => Promise<MergedSchedule[]>,
+    plantIds?: string[],
   ) {
-    const plants = await this.prisma.plant.findMany({ select: { id: true } });
+    const plants = plantIds
+      ? plantIds.map((id) => ({ id }))
+      : await this.prisma.plant.findMany({ select: { id: true } });
     const taskTypes = Object.values(TaskType);
 
     for (const plant of plants) {

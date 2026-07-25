@@ -241,6 +241,47 @@ describe('SchedulerService', () => {
     });
   });
 
+  describe('seedTasksForPlants', () => {
+    it('creates the first task for each given plant without scanning them all', async () => {
+      prisma.task.updateMany.mockResolvedValue({ count: 0 });
+      prisma.task.findFirst.mockResolvedValue(null); // no pending, no history
+      prisma.task.create.mockResolvedValue({});
+
+      await service.seedTasksForPlants(['plant-1']);
+
+      // Scoped to the ids it was handed, not a full-table scan.
+      expect(prisma.plant.findMany).not.toHaveBeenCalled();
+      expect(prisma.task.create).toHaveBeenCalledTimes(4);
+      expect(prisma.task.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          plantId: 'plant-1',
+          taskType: 'watering',
+          status: 'pending',
+        }),
+      });
+    });
+
+    it('honours the one-pending-per-plant invariant', async () => {
+      prisma.task.updateMany.mockResolvedValue({ count: 0 });
+      // A pending task already exists for every task type.
+      prisma.task.findFirst.mockResolvedValue({
+        id: 'task-1',
+        status: 'pending',
+      });
+
+      await service.seedTasksForPlants(['plant-1']);
+
+      expect(prisma.task.create).not.toHaveBeenCalled();
+    });
+
+    it('does nothing for an empty list', async () => {
+      await service.seedTasksForPlants([]);
+
+      expect(schedulesService.getMergedSchedules).not.toHaveBeenCalled();
+      expect(prisma.task.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe('notification dispatch', () => {
     const owner = { id: 'owner-1', locale: 'en' };
     const collaborator = { id: 'user-2', locale: 'es' };

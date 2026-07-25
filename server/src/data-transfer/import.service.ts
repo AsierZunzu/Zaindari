@@ -11,6 +11,7 @@ import * as path from 'path';
 import sharp from 'sharp';
 import yauzl from 'yauzl';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SchedulerService } from '../tasks/scheduler.service.js';
 import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 import { isSupportedLocale } from '../i18n/messages.js';
 import { MAX_IMAGE_BYTES } from '../plants/image-upload.options.js';
@@ -82,7 +83,10 @@ const MAX_JSON_BYTES = 32 * 1024 * 1024;
 export class ImportService {
   private readonly logger = new Logger(ImportService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scheduler: SchedulerService,
+  ) {}
 
   async preview(userId: string, file: Buffer): Promise<ImportPreview> {
     const { manifest, data, images } = await this.readBundle(file);
@@ -239,6 +243,17 @@ export class ImportService {
       if (fs.existsSync(dir)) {
         fs.rmSync(dir, { recursive: true, force: true });
       }
+    }
+
+    // Seed the first task for every plant we just created, so a freshly
+    // imported garden has its schedule running immediately rather than after
+    // the next cron tick. Non-fatal: the import has already committed real
+    // rows, and the @Cron('* * * * *') tick seeds anything this misses within
+    // the minute. Failing here would report a good backup as broken.
+    try {
+      await this.scheduler.seedTasksForPlants(plans.map((plan) => plan.id));
+    } catch (err) {
+      this.logger.warn(`Post-import task seeding failed: ${String(err)}`);
     }
 
     return {

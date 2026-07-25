@@ -7,6 +7,7 @@ import * as path from 'path';
 import { ZipFile } from 'yazl';
 import { ImportService } from './import.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SchedulerService } from '../tasks/scheduler.service.js';
 import { BUNDLE_FORMAT_VERSION } from './bundle.js';
 
 /**
@@ -133,6 +134,7 @@ function data(overrides: Record<string, unknown> = {}) {
 describe('ImportService', () => {
   let service: ImportService;
   let root: string;
+  let scheduler: { seedTasksForPlants: ReturnType<typeof vi.fn> };
   let tx: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
   let prisma: {
     plant: {
@@ -166,8 +168,14 @@ describe('ImportService', () => {
       ),
     };
 
+    scheduler = { seedTasksForPlants: vi.fn().mockResolvedValue(undefined) };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ImportService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        ImportService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: SchedulerService, useValue: scheduler },
+      ],
     }).compile();
 
     service = module.get<ImportService>(ImportService);
@@ -366,10 +374,43 @@ describe('ImportService', () => {
 
       await service.import('user-1', zip, 'append');
 
-      // Imported plants have no history at all, which createDueTasks reads as
-      // "no tasks exist -- create the first one" on the next tick.
+      // The import writes no task rows itself; seeding is delegated to the
+      // scheduler, which reads a plant with no history as "no tasks exist --
+      // create the first one".
       expect(tx).not.toHaveProperty('task.createMany');
       expect(JSON.stringify(plantRows())).not.toContain('dueAt');
+    });
+
+    it('seeds tasks for exactly the plants it created', async () => {
+      const zip = await buildZip([
+        { name: 'manifest.json', content: manifest() },
+        {
+          name: 'data.json',
+          content: data({ plants: [{ name: 'A' }, { name: 'B' }] }),
+        },
+      ]);
+
+      await service.import('user-1', zip, 'append');
+
+      const seededIds = scheduler.seedTasksForPlants.mock.calls[0][0];
+      expect(seededIds).toEqual(
+        plantRows().map((row: { id: string }) => row.id),
+      );
+    });
+
+    // The rows are committed and returned by this point, and the cron tick is
+    // the backstop, so a seeding failure must not turn a good backup into an
+    // importFailed error.
+    it('still succeeds when task seeding throws', async () => {
+      scheduler.seedTasksForPlants.mockRejectedValueOnce(new Error('boom'));
+      const zip = await buildZip([
+        { name: 'manifest.json', content: manifest() },
+        { name: 'data.json', content: data() },
+      ]);
+
+      const summary = await service.import('user-1', zip, 'append');
+
+      expect(summary).toMatchObject({ plants: 1 });
     });
   });
 

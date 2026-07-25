@@ -11,6 +11,6 @@ import { PlantAccessGuard } from '../common/guards/plant-access.guard.js';
   imports: [ScheduleModule, SchedulesModule, PushModule],
   controllers: [TasksController],
   providers: [TasksService, SchedulerService, PlantAccessGuard],
-  exports: [TasksService],
+  exports: [TasksService, SchedulerService],
 })
 export class TasksModule {}
