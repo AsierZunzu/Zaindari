@@ -29,8 +29,14 @@ Postgres container. There is no separate web server to configure.
 ```bash
 cp .env.example .env
 # edit .env — at minimum set DB_PASSWORD and JWT_SECRET
-docker compose up --build
+docker compose up -d
 ```
+
+This pulls `ghcr.io/asierzunzu/zaindari:main`, a public image — no `docker login` needed.
+CI publishes it on every push to `main` and on every `v*` tag; pin a release by setting
+`ZAINDARI_IMAGE_TAG` in `.env` (for example `ZAINDARI_IMAGE_TAG=1.0`). To run your own
+working tree instead, copy `compose.override.example.yaml` to `compose.override.yaml` and
+use `docker compose up --build`.
 
 The app is on <http://localhost:3000>. Migrations run automatically on boot, and a VAPID
 keypair for push notifications is generated into the database on first start.
