@@ -29,7 +29,7 @@ function closeMenus() {
 </script>
 
 <template>
-  <nav class="bg-primary-700 shadow-lg">
+  <nav class="sticky top-0 z-40 bg-primary-700 shadow-lg">
     <div class="mx-auto max-w-5xl px-4">
       <div class="flex h-14 items-center justify-between">
         <!-- Brand -->
