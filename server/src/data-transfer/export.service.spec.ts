@@ -288,7 +288,6 @@ describe('ExportService', () => {
       'completedAt',
       'completedBy',
       'snoozeUntil',
-      'skipReason',
     ]) {
       expect(raw).not.toContain(field);
     }

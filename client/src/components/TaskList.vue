@@ -118,10 +118,7 @@ function onTaskUpdated(task: Task) {
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-2">
               <span class="text-lg">{{ taskTypeEmoji(task.taskType) }}</span>
-              <div>
-                <p class="text-sm font-medium text-gray-500">{{ taskType(task.taskType) }}</p>
-                <p v-if="task.skipReason" class="text-xs text-gray-400 italic">{{ task.skipReason }}</p>
-              </div>
+              <p class="text-sm font-medium text-gray-500">{{ taskType(task.taskType) }}</p>
             </div>
             <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
               {{ $t('taskStatus.skipped') }}

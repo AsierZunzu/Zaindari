@@ -38,7 +38,6 @@ export interface Task {
   completedAt: string | null
   completedBy: string | null
   snoozeUntil: string | null
-  skipReason: string | null
 }
 
 /** A task as returned by the cross-plant `/api/tasks` feed, which the agenda and

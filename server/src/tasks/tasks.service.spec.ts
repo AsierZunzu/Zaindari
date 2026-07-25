@@ -325,15 +325,10 @@ describe('TasksService', () => {
       prisma.task.update.mockResolvedValue({
         id: 'task-1',
         status: 'skipped',
-        skipReason: 'On vacation',
       });
       prisma.task.create.mockResolvedValue({});
 
-      const result = await service.skip(
-        'task-1',
-        { reason: 'On vacation' },
-        'user-1',
-      );
+      const result = await service.skip('task-1', 'user-1');
 
       expect(result.status).toBe('skipped');
       expect(prisma.task.create).toHaveBeenCalledWith({

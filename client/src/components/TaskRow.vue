@@ -55,7 +55,6 @@ const settled = computed(
               &middot; {{ task.plant.location }}</span>
           </RouterLink>
           <p class="text-xs text-gray-500">{{ dueTime(task.dueAt) }} &middot; {{ relativeDate(task.dueAt) }}</p>
-          <p v-if="task.skipReason" class="text-xs italic text-gray-400">{{ task.skipReason }}</p>
         </div>
       </div>
       <span

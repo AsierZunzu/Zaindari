@@ -20,7 +20,6 @@ function task(overrides: Partial<TaskWithPlant> & { id: string; dueAt: string })
     completedAt: null,
     completedBy: null,
     snoozeUntil: null,
-    skipReason: null,
     plant: { id: 'plant-1', name: 'Monstera', location: 'Kitchen' },
     ...overrides,
   }

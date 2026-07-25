@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { tasksApi } from '../api/tasks'
 import type { Task } from '../types'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   task: Task
@@ -12,21 +15,29 @@ const emit = defineEmits<{
 }>()
 
 const showSnooze = ref(false)
-const showSkip = ref(false)
-const skipReason = ref('')
 const acting = ref(false)
 
 /**
- * Durations, not labels: "3d" is not how every language abbreviates three days,
- * so the label is rendered from `tasks.snoozeHours` / `tasks.snoozeDays`.
+ * One row of buttons, two server actions. A fixed lapse holds this same task
+ * back (snooze); "next scheduled" gives up on this occurrence and lets the
+ * schedule resume one interval out, which is what skipping already does.
+ *
+ * Durations, not labels: "3d" is not how every language abbreviates three
+ * days, so the label is rendered from `tasks.snoozeDays`.
  */
 const snoozeOptions = [
-  { hours: 1, unit: 'hours', amount: 1 },
-  { hours: 6, unit: 'hours', amount: 6 },
-  { hours: 12, unit: 'hours', amount: 12 },
-  { hours: 24, unit: 'days', amount: 1 },
-  { hours: 72, unit: 'days', amount: 3 },
+  { key: 'd1', action: 'snooze', hours: 24, days: 1 },
+  { key: 'd3', action: 'snooze', hours: 72, days: 3 },
+  { key: 'next', action: 'skip' },
 ] as const
+
+type SnoozeOption = (typeof snoozeOptions)[number]
+
+function optionLabel(opt: SnoozeOption) {
+  return opt.action === 'snooze'
+    ? t('tasks.snoozeDays', { count: opt.days }, opt.days)
+    : t('tasks.snoozeNextScheduled')
+}
 
 async function completeTask() {
   if (acting.value) return
@@ -54,28 +65,15 @@ async function undoTask() {
   }
 }
 
-async function snoozeTask(hours: number) {
+async function snoozeTask(opt: SnoozeOption) {
   if (acting.value) return
   acting.value = true
   try {
-    const updated = await tasksApi.snooze(props.task.id, hours)
+    const updated =
+      opt.action === 'snooze'
+        ? await tasksApi.snooze(props.task.id, opt.hours)
+        : await tasksApi.skip(props.task.id)
     showSnooze.value = false
-    emit('task-updated', updated)
-  } catch {
-    // error handling could be enhanced
-  } finally {
-    acting.value = false
-  }
-}
-
-async function skipTask() {
-  if (acting.value) return
-  if (!skipReason.value.trim()) return
-  acting.value = true
-  try {
-    const updated = await tasksApi.skip(props.task.id, skipReason.value.trim())
-    showSkip.value = false
-    skipReason.value = ''
     emit('task-updated', updated)
   } catch {
     // error handling could be enhanced
@@ -105,22 +103,10 @@ async function skipTask() {
       v-if="task.status === 'pending' || task.status === 'snoozed'"
       class="inline-flex items-center justify-center rounded-md bg-yellow-50 p-1.5 text-yellow-600 transition-colors hover:bg-yellow-100"
       :title="$t('tasks.snooze')"
-      @click="showSnooze = !showSnooze; showSkip = false"
+      @click="showSnooze = !showSnooze"
     >
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    </button>
-
-    <!-- Skip button (for pending) -->
-    <button
-      v-if="task.status === 'pending'"
-      class="inline-flex items-center justify-center rounded-md bg-gray-50 p-1.5 text-gray-500 transition-colors hover:bg-gray-100"
-      :title="$t('tasks.skip')"
-      @click="showSkip = !showSkip; showSnooze = false"
-    >
-      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
       </svg>
     </button>
 
@@ -141,30 +127,12 @@ async function skipTask() {
     <div v-if="showSnooze" class="flex w-full items-center gap-1 pt-1">
       <button
         v-for="opt in snoozeOptions"
-        :key="opt.hours"
+        :key="opt.key"
         class="rounded-md border border-yellow-200 bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700 transition-colors hover:bg-yellow-100 disabled:opacity-50"
         :disabled="acting"
-        @click="snoozeTask(opt.hours)"
+        @click="snoozeTask(opt)"
       >
-        {{ opt.unit === 'hours' ? $t('tasks.snoozeHours', { n: opt.amount }) : $t('tasks.snoozeDays', { n: opt.amount }) }}
-      </button>
-    </div>
-
-    <!-- Skip reason input -->
-    <div v-if="showSkip" class="flex w-full items-center gap-2 pt-1">
-      <input
-        v-model="skipReason"
-        type="text"
-        :placeholder="$t('tasks.skipReasonPlaceholder')"
-        class="flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400"
-        @keyup.enter="skipTask"
-      />
-      <button
-        class="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
-        :disabled="acting || !skipReason.trim()"
-        @click="skipTask"
-      >
-        {{ $t('common.confirm') }}
+        {{ optionLabel(opt) }}
       </button>
     </div>
   </div>

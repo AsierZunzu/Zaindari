@@ -94,11 +94,10 @@ export class TasksController {
   @Post('tasks/:taskId/skip')
   async skip(
     @Param('taskId') taskId: string,
-    @Body() body: { reason?: string },
     @CurrentUser() user: { id: string },
   ) {
     await this.ensureTaskPlantAccess(taskId, user.id);
-    return this.tasksService.skip(taskId, body, user.id);
+    return this.tasksService.skip(taskId, user.id);
   }
 
   private parseDate(

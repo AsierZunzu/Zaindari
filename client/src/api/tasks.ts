@@ -49,7 +49,9 @@ export const tasksApi = {
     return api.post(`/api/tasks/${taskId}/snooze`, { hours })
   },
 
-  skip(taskId: string, reason: string): Promise<Task> {
-    return api.post(`/api/tasks/${taskId}/skip`, { reason })
+  /** Gives up on this occurrence: the server schedules the next one an
+   *  interval out. Offered as the last of the snooze lapses. */
+  skip(taskId: string): Promise<Task> {
+    return api.post(`/api/tasks/${taskId}/skip`)
   },
 }

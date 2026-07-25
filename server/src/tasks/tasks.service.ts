@@ -233,7 +233,7 @@ export class TasksService {
 
   // `_userId` is unused: unlike complete(), skipping records no actor. The
   // parameter stays so the controller's call shape matches complete()'s.
-  async skip(taskId: string, data: { reason?: string }, _userId: string) {
+  async skip(taskId: string, _userId: string) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
       throw new NotFoundException(
@@ -251,7 +251,6 @@ export class TasksService {
       where: { id: taskId },
       data: {
         status: 'skipped',
-        skipReason: data.reason ?? null,
       },
     });
 
