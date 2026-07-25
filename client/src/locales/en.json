@@ -217,6 +217,13 @@
         "photosUnreadable": "{plant}: {count} photo could not be read.|{plant}: {count} photos could not be read.",
         "localeUnavailable": "The language “{locale}” is not available here, so yours was left unchanged."
       }
+    },
+    "install": {
+      "title": "Install app",
+      "hint": "Adds Zaindari to your home screen so it opens on its own, without browser chrome.",
+      "action": "Install",
+      "installed": "Zaindari is installed on this device.",
+      "unavailable": "This browser has not offered installation. Some browsers, Brave and Firefox among them, only offer it from their own menu — look for \"Add to Home screen\"."
     }
   },
   "admin": {

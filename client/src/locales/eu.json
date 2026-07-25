@@ -217,6 +217,13 @@
         "photosUnreadable": "{plant}: ezin izan da {count} argazki irakurri.|{plant}: ezin izan dira {count} argazki irakurri.",
         "localeUnavailable": "“{locale}” hizkuntza ez dago erabilgarri hemen, beraz zurea ez da aldatu."
       }
+    },
+    "install": {
+      "title": "Aplikazioa instalatu",
+      "hint": "Zaindari zure hasierako pantailan gehitzen du, nabigatzailearen interfazerik gabe bere kabuz ireki dadin.",
+      "action": "Instalatu",
+      "installed": "Zaindari gailu honetan instalatuta dago.",
+      "unavailable": "Nabigatzaile honek ez du instalazioa eskaini. Nabigatzaile batzuek, Brave eta Firefox besteak beste, beren menutik baino ez dute eskaintzen: bilatu «Hasierako pantailan gehitu»."
     }
   },
   "admin": {

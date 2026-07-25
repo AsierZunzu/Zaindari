@@ -217,6 +217,13 @@
         "photosUnreadable": "{plant}: no se ha podido leer {count} foto.|{plant}: no se han podido leer {count} fotos.",
         "localeUnavailable": "El idioma «{locale}» no está disponible aquí, así que el tuyo no ha cambiado."
       }
+    },
+    "install": {
+      "title": "Instalar la aplicación",
+      "hint": "Añade Zaindari a tu pantalla de inicio para que se abra por su cuenta, sin la interfaz del navegador.",
+      "action": "Instalar",
+      "installed": "Zaindari está instalada en este dispositivo.",
+      "unavailable": "Este navegador no ha ofrecido la instalación. Algunos navegadores, entre ellos Brave y Firefox, solo la ofrecen desde su propio menú: busca «Añadir a pantalla de inicio»."
     }
   },
   "admin": {

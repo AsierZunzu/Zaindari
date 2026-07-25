@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from './router'
 import { i18n, resolveInitialLocale, setLocale } from './i18n'
 import { useAuthStore } from './stores/auth'
+import { initInstallPrompt } from './composables/useInstallPrompt'
 import './style.css'
 
 const app = createApp(App)
@@ -18,6 +19,11 @@ setLocale(resolveInitialLocale())
 
 app.use(pinia)
 app.use(router)
+
+// Before mount on purpose: the browser fires beforeinstallprompt once, and it
+// can land before the first view has rendered. Registering it later means the
+// install button never appears at all.
+initInstallPrompt()
 
 // The router guard awaits this same promise, so the first navigation resolves
 // against a settled session rather than racing it.

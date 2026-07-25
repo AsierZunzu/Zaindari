@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useNotifications } from '../composables/useNotifications'
+import { useInstallPrompt } from '../composables/useInstallPrompt'
 import { useApiError } from '../composables/useApiError'
 import { useAuthStore } from '../stores/auth'
 import { SUPPORTED_LOCALES, type Locale } from '../i18n'
@@ -14,6 +15,7 @@ import { useTaskLabels } from '../composables/useTaskLabels'
 
 const { isSupported, permission, isSubscribed, subscribe, unsubscribe } =
   useNotifications()
+const { canInstall, isInstalled, promptInstall } = useInstallPrompt()
 const { locale } = useI18n()
 const { apiErrorMessage } = useApiError()
 const auth = useAuthStore()
@@ -21,6 +23,7 @@ const auth = useAuthStore()
 const subscribing = ref(false)
 const errorMessage = ref('')
 const localeError = ref('')
+const installing = ref(false)
 
 const selectedLocale = computed({
   get: () => locale.value as Locale,
@@ -136,11 +139,63 @@ async function toggleNotifications() {
     subscribing.value = false
   }
 }
+
+async function installApp() {
+  installing.value = true
+  try {
+    // We deliberately say nothing about the result: 'accepted' flips the whole
+    // section to its installed state on its own, and a dismissal is the user's
+    // call to make quietly — the button simply stays where it was.
+    await promptInstall()
+  } finally {
+    installing.value = false
+  }
+}
 </script>
 
 <template>
   <div class="mx-auto max-w-lg px-4 py-6">
     <h1 class="mb-6 text-2xl font-bold text-gray-900">{{ $t('settings.title') }}</h1>
+
+    <section class="mb-4 rounded-lg border border-gray-200 bg-white p-5">
+      <h2 class="mb-1 text-lg font-semibold text-gray-800">
+        {{ $t('settings.install.title') }}
+      </h2>
+
+      <div
+        v-if="isInstalled"
+        class="mt-3 rounded-md bg-green-50 p-3 text-sm text-green-700"
+      >
+        {{ $t('settings.install.installed') }}
+      </div>
+
+      <template v-else>
+        <div class="flex items-center justify-between gap-4">
+          <p class="text-xs text-gray-500">
+            {{ $t('settings.install.hint') }}
+          </p>
+          <button
+            v-if="canInstall"
+            type="button"
+            :disabled="installing"
+            class="shrink-0 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:cursor-not-allowed disabled:opacity-50"
+            @click="installApp"
+          >
+            {{ $t('settings.install.action') }}
+          </button>
+        </div>
+
+        <!-- Firefox and Safari never fire beforeinstallprompt, and Brave can
+             go quiet too, so the button simply will not appear for some
+             people. Say where to look rather than showing nothing. -->
+        <p
+          v-if="!canInstall"
+          class="mt-3 rounded-md bg-gray-50 p-3 text-sm text-gray-600"
+        >
+          {{ $t('settings.install.unavailable') }}
+        </p>
+      </template>
+    </section>
 
     <section class="mb-4 rounded-lg border border-gray-200 bg-white p-5">
       <h2 class="mb-4 text-lg font-semibold text-gray-800">
