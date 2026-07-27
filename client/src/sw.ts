@@ -94,8 +94,12 @@ self.addEventListener('push', (event) => {
   const title = payload.title || 'Zaindari'
   const options: NotificationOptions = {
     body: payload.body || '',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    // Both files must exist and be in the precache: a 404 here is not an error
+    // the browser reports, it silently falls back to its own logo. The badge is
+    // a separate asset because Android keeps only the alpha channel of it, so
+    // the full-colour app icon would render as a solid square.
+    icon: '/pwa-192x192.png',
+    badge: '/badge-96x96.png',
     data: { url: payload.url || '/' },
   }
 
