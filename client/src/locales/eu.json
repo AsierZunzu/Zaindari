@@ -174,7 +174,10 @@
     "disabled": "Desaktibatuta",
     "disabledHint": "Ez dago landare honetarako programatuta",
     "enable": "Aktibatu",
-    "disable": "Desaktibatu"
+    "disable": "Desaktibatu",
+    "resetPending": "Programazio lehenetsira berrezarriko da",
+    "undoReset": "Desegin berrezartzea",
+    "unsavedChanges": "Gorde gabeko aldaketak"
   },
   "settings": {
     "title": "Ezarpenak",

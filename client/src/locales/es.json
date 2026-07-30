@@ -174,7 +174,10 @@
     "disabled": "Desactivado",
     "disabledHint": "No programado para esta planta",
     "enable": "Activar",
-    "disable": "Desactivar"
+    "disable": "Desactivar",
+    "resetPending": "Se restablecerá la programación por defecto",
+    "undoReset": "Deshacer restablecimiento",
+    "unsavedChanges": "Cambios sin guardar"
   },
   "settings": {
     "title": "Ajustes",

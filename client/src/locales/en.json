@@ -174,7 +174,10 @@
     "disabled": "Off",
     "disabledHint": "Not scheduled for this plant",
     "enable": "Turn on",
-    "disable": "Turn off"
+    "disable": "Turn off",
+    "resetPending": "Will reset to the default schedule",
+    "undoReset": "Undo reset",
+    "unsavedChanges": "Unsaved changes"
   },
   "settings": {
     "title": "Settings",
