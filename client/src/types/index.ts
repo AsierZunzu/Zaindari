@@ -47,6 +47,7 @@ export interface TaskWithPlant extends Task {
     id: string
     name: string
     location: string | null
+    currentImage: PlantImage | null
   }
 }
 

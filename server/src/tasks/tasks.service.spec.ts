@@ -363,24 +363,67 @@ describe('TasksService', () => {
     });
 
     it('should return tasks with their plant so the agenda can label them', async () => {
-      const tasks = [
+      const image = { id: 'image-1', plantId: 'plant-1', isCurrent: true };
+      prisma.task.findMany.mockResolvedValue([
         {
           id: 'task-1',
           taskType: 'watering',
-          plant: { id: 'plant-1', name: 'Monstera', location: 'Kitchen' },
+          plant: {
+            id: 'plant-1',
+            name: 'Monstera',
+            location: 'Kitchen',
+            images: [image],
+          },
         },
-      ];
-      prisma.task.findMany.mockResolvedValue(tasks);
+      ]);
 
       const result = await service.getTasksForUser('user-1');
 
-      expect(result).toEqual(tasks);
+      // The one-element `images` array is flattened to `currentImage`, the
+      // shape the client declares -- the agenda renders it as a thumbnail.
+      expect(result).toEqual([
+        {
+          id: 'task-1',
+          taskType: 'watering',
+          plant: {
+            id: 'plant-1',
+            name: 'Monstera',
+            location: 'Kitchen',
+            currentImage: image,
+          },
+        },
+      ]);
       expect(prisma.task.findMany.mock.calls[0][0]).toMatchObject({
         include: {
-          plant: { select: { id: true, name: true, location: true } },
+          plant: {
+            select: {
+              id: true,
+              name: true,
+              location: true,
+              images: { where: { isCurrent: true }, take: 1 },
+            },
+          },
         },
         orderBy: { dueAt: 'asc' },
       });
+    });
+
+    it('should report a plant with no photo as a null currentImage', async () => {
+      prisma.task.findMany.mockResolvedValue([
+        {
+          id: 'task-1',
+          plant: {
+            id: 'plant-1',
+            name: 'Monstera',
+            location: null,
+            images: [],
+          },
+        },
+      ]);
+
+      const result = await service.getTasksForUser('user-1');
+
+      expect(result[0].plant.currentImage).toBeNull();
     });
 
     it('should constrain the due window when from and to are given', async () => {

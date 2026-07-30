@@ -73,7 +73,7 @@ export class TasksService {
           ]
         : [];
 
-    return this.prisma.task.findMany({
+    const tasks = await this.prisma.task.findMany({
       where: {
         plant: {
           OR: [{ ownerId: userId }, { shares: { some: { userId } } }],
@@ -84,10 +84,31 @@ export class TasksService {
           : dueWindow),
       },
       include: {
-        plant: { select: { id: true, name: true, location: true } },
+        plant: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            // The agenda shows the plant's photo as a thumbnail. Same shape as
+            // `toPlantWithImage`: a one-element array is the only way to say
+            // "the current one" in a select, and it is flattened below because
+            // the client declares a single `currentImage`.
+            images: { where: { isCurrent: true }, take: 1 },
+          },
+        },
       },
       orderBy: { dueAt: 'asc' },
     });
+
+    return tasks.map(({ plant, ...task }) => ({
+      ...task,
+      plant: {
+        id: plant.id,
+        name: plant.name,
+        location: plant.location,
+        currentImage: plant.images[0] ?? null,
+      },
+    }));
   }
 
   async complete(taskId: string, userId: string) {

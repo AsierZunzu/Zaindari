@@ -4,6 +4,7 @@ import type { Task, TaskWithPlant } from '../types'
 import { taskTypeEmoji, isOverdue, isDueToday } from '../utils/date'
 import { useTaskLabels } from '../composables/useTaskLabels'
 import TaskActions from './TaskActions.vue'
+import AuthedImage from './AuthedImage.vue'
 
 const props = defineProps<{
   task: TaskWithPlant
@@ -39,7 +40,32 @@ const settled = computed(
   >
     <div class="flex items-start justify-between gap-3">
       <div class="flex min-w-0 items-center gap-2">
-        <span class="text-lg">{{ taskTypeEmoji(task.taskType) }}</span>
+        <!--
+          The plant's photo, with the task-type emoji badged onto it: at this
+          size the picture says *which plant* faster than the name does, while
+          the emoji still says *what to do*. Plants with no photo fall back to
+          the same sprout PlantCard uses, so the row never changes height.
+        -->
+        <RouterLink
+          :to="`/plants/${task.plant.id}`"
+          class="relative block size-11 shrink-0 overflow-hidden rounded-lg bg-primary-50"
+        >
+          <AuthedImage
+            v-if="task.plant.currentImage"
+            :src="`/api/images/${task.plant.currentImage.id}`"
+            :alt="task.plant.name"
+            class="h-full w-full object-cover"
+          />
+          <span v-else class="flex h-full w-full items-center justify-center text-xl">
+            &#127793;
+          </span>
+          <span
+            class="absolute -bottom-0.5 -right-0.5 rounded-full bg-white/90 px-0.5 text-xs leading-tight shadow-sm"
+            aria-hidden="true"
+          >
+            {{ taskTypeEmoji(task.taskType) }}
+          </span>
+        </RouterLink>
         <div class="min-w-0">
           <p
             class="truncate text-sm font-medium text-gray-900"

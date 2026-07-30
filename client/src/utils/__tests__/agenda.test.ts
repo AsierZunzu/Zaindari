@@ -20,7 +20,7 @@ function task(overrides: Partial<TaskWithPlant> & { id: string; dueAt: string })
     completedAt: null,
     completedBy: null,
     snoozeUntil: null,
-    plant: { id: 'plant-1', name: 'Monstera', location: 'Kitchen' },
+    plant: { id: 'plant-1', name: 'Monstera', location: 'Kitchen', currentImage: null },
     ...overrides,
   }
 }
@@ -202,7 +202,7 @@ describe('dayMarkers', () => {
           id: 'b',
           dueAt: '2026-07-23T09:00:00',
           plantId: 'plant-2',
-          plant: { id: 'plant-2', name: 'Ficus', location: null },
+          plant: { id: 'plant-2', name: 'Ficus', location: null, currentImage: null },
         }),
         task({ id: 'c', dueAt: '2026-07-23T10:00:00', taskType: 'misting' }),
       ]),
