@@ -23,7 +23,13 @@ export class ImagesService {
     const filename = `${randomUUID()}.webp`;
     const filePath = path.join(uploadsDir, filename);
 
+    // rotate() with no angle auto-orients from the EXIF Orientation tag, which
+    // phone cameras use instead of writing rotated pixels. It has to run before
+    // resize() so the 1200px cap lands on the displayed width, and the webp
+    // output drops the metadata afterwards -- so a portrait photo that is not
+    // baked upright here stays sideways forever.
     await sharp(file.buffer)
+      .rotate()
       .resize({ width: 1200, withoutEnlargement: true })
       .webp()
       .toFile(filePath);

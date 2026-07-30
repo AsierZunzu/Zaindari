@@ -6,9 +6,11 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 vi.mock('sharp', () => {
   const sharpFn = vi.fn().mockReturnValue({
-    resize: vi.fn().mockReturnValue({
-      webp: vi.fn().mockReturnValue({
-        toFile: vi.fn().mockResolvedValue(undefined),
+    rotate: vi.fn().mockReturnValue({
+      resize: vi.fn().mockReturnValue({
+        webp: vi.fn().mockReturnValue({
+          toFile: vi.fn().mockResolvedValue(undefined),
+        }),
       }),
     }),
   });

@@ -31,9 +31,11 @@ vi.mock('sharp', async () => {
   });
 
   const sharpFn = vi.fn((buffer: Buffer) => ({
-    resize: vi.fn().mockReturnValue({
-      webp: vi.fn().mockReturnValue({
-        toFile: (destination: string) => toFile(destination, buffer),
+    rotate: vi.fn().mockReturnValue({
+      resize: vi.fn().mockReturnValue({
+        webp: vi.fn().mockReturnValue({
+          toFile: (destination: string) => toFile(destination, buffer),
+        }),
       }),
     }),
   }));

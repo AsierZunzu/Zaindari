@@ -316,6 +316,7 @@ export class ImportService {
           }
 
           await sharp(buffer)
+            .rotate()
             .resize({ width: 1200, withoutEnlargement: true })
             .webp()
             .toFile(absolutePath);
