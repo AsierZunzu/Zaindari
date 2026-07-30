@@ -120,7 +120,6 @@ function handleFileChange(event: Event) {
       ref="fileInput"
       type="file"
       accept="image/*"
-      capture="environment"
       class="hidden"
       @change="handleFileChange"
     />
