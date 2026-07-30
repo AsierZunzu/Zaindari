@@ -233,6 +233,20 @@ export class TasksService {
     return updatedTask;
   }
 
+  /**
+   * Postponing moves the due date, it does not just annotate the task.
+   *
+   * The agenda and the calendar grid bucket by `dueAt` (`utils/agenda.ts`), and
+   * `getTasksForUser` filters its window by it too, so a task whose `dueAt`
+   * stayed put would keep drawing on the day it was postponed *from* — and
+   * would snap back there anyway once `SchedulerService` un-snoozes it and
+   * clears `snoozeUntil`. Moving `dueAt` makes every reader agree, including
+   * `shouldNotifyNow`, which anchors on `max(createdAt, dueAt)` and so holds
+   * the push back by the same lapse.
+   *
+   * `snoozeUntil` is kept as the un-snooze latch the scheduler watches; the two
+   * are the same instant, but they answer different questions.
+   */
   async snooze(taskId: string, data: { hours: number }) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
@@ -241,13 +255,33 @@ export class TasksService {
       );
     }
 
-    const snoozeUntil = new Date(Date.now() + data.hours * 60 * 60 * 1000);
+    const now = new Date();
+    const lapseEnd = new Date(now.getTime() + data.hours * 60 * 60 * 1000);
+
+    const mergedSchedules = await this.schedulesService.getMergedSchedules(
+      task.plantId,
+    );
+    const schedule = mergedSchedules.find((s) => s.taskType === task.taskType);
+
+    const dueAt = this.calculateSnoozedDueAt(
+      lapseEnd,
+      now,
+      schedule?.hour ?? null,
+      schedule?.minute ?? null,
+    );
 
     return this.prisma.task.update({
       where: { id: taskId },
       data: {
         status: 'snoozed',
-        snoozeUntil,
+        // The latch tracks the due date rather than the raw lapse: they answer
+        // different questions but not different instants. A `snoozeUntil` left
+        // at the raw offset would leave the task drawn on its new day and
+        // still labelled snoozed for the rest of that day, and would hold the
+        // reminder back past the hour it is now due at — `dispatchNotifications`
+        // only considers `pending` tasks.
+        snoozeUntil: dueAt,
+        dueAt,
       },
     });
   }
@@ -317,5 +351,40 @@ export class TasksService {
       0,
     );
     return next;
+  }
+
+  /**
+   * The due date a postponed task lands on: the day the lapse reaches, at the
+   * hour the plant is scheduled for — not the arbitrary clock time the button
+   * happened to be pressed at. Postponing a 08:00 watering by a day makes it
+   * due at 08:00, the same as every other occurrence the schedule produces.
+   *
+   * That means the lapse picks the *day* and the schedule picks the time, so a
+   * postponement is not exactly `hours` long. Normalising can also land before
+   * the lapse even began — a two-hour postponement at 10:00 against an 08:00
+   * schedule — and a task must not come due before it was postponed to, so
+   * that case rolls to the next day's occurrence instead.
+   *
+   * UTC throughout, like every other due-date calculation here.
+   */
+  private calculateSnoozedDueAt(
+    snoozeUntil: Date,
+    now: Date,
+    hour: number | null,
+    minute: number | null,
+  ): Date {
+    const due = new Date(snoozeUntil);
+    due.setUTCHours(
+      hour ?? DEFAULT_DUE_TIME.hour,
+      minute ?? DEFAULT_DUE_TIME.minute,
+      0,
+      0,
+    );
+
+    if (due < now) {
+      due.setUTCDate(due.getUTCDate() + 1);
+    }
+
+    return due;
   }
 }

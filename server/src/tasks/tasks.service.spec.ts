@@ -268,35 +268,77 @@ describe('TasksService', () => {
   });
 
   describe('snooze', () => {
-    it('should snooze a task for the given hours', async () => {
-      const now = new Date('2024-06-01T12:00:00Z');
-      vi.setSystemTime(now);
+    const pendingWatering = {
+      id: 'task-1',
+      plantId: 'plant-1',
+      taskType: 'watering',
+      status: 'pending',
+      dueAt: new Date('2024-05-30T08:00:00Z'),
+    };
 
-      prisma.task.findUnique.mockResolvedValue({
-        id: 'task-1',
-        status: 'pending',
-      });
+    // The agenda and the calendar bucket by `dueAt`, so postponing has to move
+    // it or the task keeps drawing on the day it was postponed from. The lapse
+    // picks the day; the plant's schedule (08:00 for watering here) picks the
+    // hour, so a task postponed at noon does not become a noon task.
+    it('should move the due date to the schedule hour on the postponed day', async () => {
+      vi.setSystemTime(new Date('2024-06-01T12:00:00Z'));
 
-      const snoozedTask = {
-        id: 'task-1',
-        status: 'snoozed',
-        snoozeUntil: new Date('2024-06-01T14:00:00Z'),
-      };
-      prisma.task.update.mockResolvedValue(snoozedTask);
+      prisma.task.findUnique.mockResolvedValue(pendingWatering);
+      prisma.task.update.mockResolvedValue({ id: 'task-1' });
 
-      await service.snooze('task-1', { hours: 2 });
+      await service.snooze('task-1', { hours: 24 });
 
       expect(prisma.task.update).toHaveBeenCalledWith({
         where: { id: 'task-1' },
         data: {
           status: 'snoozed',
           snoozeUntil: expect.any(Date),
+          dueAt: expect.any(Date),
         },
       });
 
-      const updateCall = prisma.task.update.mock.calls[0][0];
-      const snoozeUntil: Date = updateCall.data.snoozeUntil;
-      expect(snoozeUntil.getTime()).toBe(now.getTime() + 2 * 60 * 60 * 1000);
+      const { dueAt, snoozeUntil } = prisma.task.update.mock.calls[0][0].data;
+      expect(dueAt.toISOString()).toBe('2024-06-02T08:00:00.000Z');
+      // The latch and the due date are the same instant: the task becomes
+      // pending exactly when it comes due.
+      expect(snoozeUntil.getTime()).toBe(dueAt.getTime());
+
+      vi.useRealTimers();
+    });
+
+    // Normalising to the schedule hour can point backwards. The task must not
+    // land before the postponement even elapses, so it takes the next day's
+    // occurrence instead.
+    it('should roll forward when the schedule hour has already passed', async () => {
+      vi.setSystemTime(new Date('2024-06-01T10:00:00Z'));
+
+      prisma.task.findUnique.mockResolvedValue(pendingWatering);
+      prisma.task.update.mockResolvedValue({ id: 'task-1' });
+
+      // 10:00 + 2h = 12:00 on the 1st; 08:00 that day is already behind us.
+      await service.snooze('task-1', { hours: 2 });
+
+      const { dueAt } = prisma.task.update.mock.calls[0][0].data;
+      expect(dueAt.toISOString()).toBe('2024-06-02T08:00:00.000Z');
+
+      vi.useRealTimers();
+    });
+
+    // A schedule that pins no hour of its own falls back to DEFAULT_DUE_TIME,
+    // exactly as a freshly created occurrence would.
+    it('should fall back to the default due time when no hour is pinned', async () => {
+      vi.setSystemTime(new Date('2024-06-01T12:00:00Z'));
+
+      schedulesService.getMergedSchedules.mockResolvedValue(
+        mockSchedules.map((s) => ({ ...s, hour: null, minute: null })),
+      );
+      prisma.task.findUnique.mockResolvedValue(pendingWatering);
+      prisma.task.update.mockResolvedValue({ id: 'task-1' });
+
+      await service.snooze('task-1', { hours: 24 });
+
+      const { dueAt } = prisma.task.update.mock.calls[0][0].data;
+      expect(dueAt.toISOString()).toBe('2024-06-02T09:00:00.000Z');
 
       vi.useRealTimers();
     });
