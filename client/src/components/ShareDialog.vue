@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from './AppIcon.vue'
 import { ref, watch } from 'vue'
 import { plantsApi } from '../api/plants'
 import { useApiError } from '../composables/useApiError'
@@ -67,23 +68,24 @@ async function removeShare(userId: string) {
   <Teleport to="body">
     <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <!-- Overlay -->
-      <div class="absolute inset-0 bg-black/50" @click="emit('close')" />
+      <div class="absolute inset-0 bg-ink/40" @click="emit('close')" />
 
       <!-- Dialog -->
-      <div class="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+      <div class="relative w-full max-w-md rounded-lg border border-line bg-surface p-6 shadow-lift">
         <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-lg font-bold text-gray-900">{{ $t('plants.shareTitle') }}</h2>
+          <h2 class="font-display text-lg font-semibold text-ink">{{ $t('plants.shareTitle') }}</h2>
+          <!-- Both icon buttons in this dialog were unlabelled: a screen reader
+               announced two identical, nameless controls. -->
           <button
-            class="rounded-md p-1 text-gray-400 hover:text-gray-600"
+            class="rounded-md p-1 text-ink-faint transition-colors hover:text-ink"
+            :aria-label="$t('common.close')"
             @click="emit('close')"
           >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <AppIcon name="close" :size="20" />
           </button>
         </div>
 
-        <div v-if="error" class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <div v-if="error" class="mb-4 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink">
           {{ error }}
         </div>
 
@@ -93,38 +95,37 @@ async function removeShare(userId: string) {
             v-model="userIdInput"
             type="text"
             :placeholder="$t('plants.userIdPlaceholder')"
-            class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            class="field-input flex-1"
           />
           <button
             type="submit"
-            class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-500"
+            class="btn btn-primary"
           >
             {{ $t('plants.share') }}
           </button>
         </form>
 
         <!-- Current shares -->
-        <div v-if="loading" class="py-4 text-center text-sm text-gray-500">{{ $t('common.loading') }}</div>
-        <div v-else-if="shares.length === 0" class="py-4 text-center text-sm text-gray-500">
+        <div v-if="loading" class="py-4 text-center text-sm text-ink-faint">{{ $t('common.loading') }}</div>
+        <div v-else-if="shares.length === 0" class="py-4 text-center text-sm text-ink-faint">
           {{ $t('plants.notSharedYet') }}
         </div>
         <ul v-else class="space-y-2">
           <li
             v-for="share in shares"
             :key="share.userId"
-            class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+            class="card-inset flex items-center justify-between px-3 py-2"
           >
             <div>
-              <span class="text-sm font-medium text-gray-900">{{ share.displayName }}</span>
-              <span class="ml-1 text-xs text-gray-500">@{{ share.username }}</span>
+              <span class="text-sm font-semibold text-ink">{{ share.displayName }}</span>
+              <span class="ml-1 text-xs text-ink-faint">@{{ share.username }}</span>
             </div>
             <button
-              class="rounded p-1 text-gray-400 transition-colors hover:text-red-500"
+              class="rounded-sm p-1 text-ink-faint transition-colors hover:text-overdue-ink"
+              :aria-label="$t('plants.removeShare')"
               @click="removeShare(share.userId)"
             >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <AppIcon name="close" :size="16" />
             </button>
           </li>
         </ul>

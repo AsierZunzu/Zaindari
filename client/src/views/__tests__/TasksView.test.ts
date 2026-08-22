@@ -63,7 +63,7 @@ describe('TasksView', () => {
     const wrapper = mountTasks()
     await flushPromises()
 
-    expect(wrapper.find('h1').text()).toBe('Tasks')
+    expect(wrapper.find('h1').text()).toBe('Care')
     expect(wrapper.findComponent({ name: 'TaskAgenda' }).exists()).toBe(true)
     expect(wrapper.findComponent({ name: 'TaskCalendar' }).exists()).toBe(false)
   })

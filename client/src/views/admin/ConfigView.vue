@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LoadingPlaceholder from '../../components/LoadingPlaceholder.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminApi } from '../../api/admin'
@@ -78,28 +79,26 @@ function removeEntry(key: string) {
 <template>
   <div>
     <div class="mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">{{ $t('admin.config.title') }}</h2>
-      <p class="text-xs text-gray-500">{{ $t('admin.config.subtitle') }}</p>
+      <h2 class="font-display text-xl font-semibold text-ink">{{ $t('admin.config.title') }}</h2>
+      <p class="text-xs text-ink-faint">{{ $t('admin.config.subtitle') }}</p>
     </div>
 
     <!-- Messages -->
-    <div v-if="error" class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{{ error }}</div>
-    <div v-if="success" class="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">{{ success }}</div>
+    <div v-if="error" class="mb-4 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink">{{ error }}</div>
+    <div v-if="success" class="mb-4 rounded-md bg-done-soft px-3 py-2.5 text-sm text-done-ink">{{ success }}</div>
 
     <!-- Loading -->
-    <div v-if="loading" class="flex justify-center py-8">
-      <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
-    </div>
+    <LoadingPlaceholder v-if="loading" :count="3" />
 
     <div v-if="!loading" class="space-y-4">
       <!-- Existing entries -->
-      <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-        <div v-if="Object.keys(editValues).length === 0" class="text-center text-sm text-gray-400 py-4">
+      <div class="card p-6">
+        <div v-if="Object.keys(editValues).length === 0" class="py-4 text-center text-sm text-ink-faint">
           {{ $t('admin.config.empty') }}
         </div>
         <div v-else class="space-y-3">
           <div v-for="key in Object.keys(editValues)" :key="key" class="flex items-center gap-3">
-            <label class="w-48 shrink-0 text-sm font-medium text-gray-700 truncate" :title="key">
+            <label class="w-48 shrink-0 truncate text-sm font-semibold text-ink" :title="key">
               {{ key }}
             </label>
             <input
@@ -109,7 +108,7 @@ function removeEntry(key: string) {
             />
             <button
               @click="removeEntry(key)"
-              class="text-xs font-medium text-red-500 hover:text-red-700"
+              class="text-xs font-semibold text-overdue-ink hover:underline"
             >
               {{ $t('common.remove') }}
             </button>
@@ -120,7 +119,7 @@ function removeEntry(key: string) {
           <button
             @click="saveAll"
             :disabled="saving"
-            class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-500 disabled:opacity-50"
+            class="btn btn-primary"
           >
             {{ saving ? $t('common.saving') : $t('common.saveChanges') }}
           </button>
@@ -128,31 +127,31 @@ function removeEntry(key: string) {
       </div>
 
       <!-- Add new entry -->
-      <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-        <h3 class="mb-3 text-sm font-semibold text-gray-900">{{ $t('admin.config.addHeading') }}</h3>
+      <div class="card p-6">
+        <h3 class="section-label mb-3">{{ $t('admin.config.addHeading') }}</h3>
         <form @submit.prevent="addEntry" class="flex items-end gap-3">
           <div class="flex-1">
-            <label class="block text-xs font-medium text-gray-700">{{ $t('admin.config.key') }}</label>
+            <label class="field-label">{{ $t('admin.config.key') }}</label>
             <input
               v-model="newKey"
               type="text"
               required
               :placeholder="$t('admin.config.keyPlaceholder')"
-              class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              class="field-input mt-1 py-1.5"
             />
           </div>
           <div class="flex-1">
-            <label class="block text-xs font-medium text-gray-700">{{ $t('admin.config.value') }}</label>
+            <label class="field-label">{{ $t('admin.config.value') }}</label>
             <input
               v-model="newValue"
               type="text"
               :placeholder="$t('admin.config.valuePlaceholder')"
-              class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              class="field-input mt-1 py-1.5"
             />
           </div>
           <button
             type="submit"
-            class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+            class="btn btn-quiet"
           >
             {{ $t('common.add') }}
           </button>

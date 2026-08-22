@@ -1,4 +1,5 @@
 import type { Task, TaskType } from '../types'
+import type { IconName } from '../components/icons'
 
 /**
  * These helpers stay pure and locale-agnostic on purpose: they answer
@@ -65,13 +66,17 @@ export function taskStatusKey(task: Pick<Task, 'status' | 'dueAt'>): string {
   return 'taskStatus.upcoming'
 }
 
-/** Emoji are the same in every language, so this one stays a plain lookup. */
-export function taskTypeEmoji(type: TaskType): string {
-  const emojis: Record<TaskType, string> = {
-    watering: '\u{1F4A7}',
-    fertilization: '\u{1F331}',
-    misting: '\u{1F4A8}',
-    repotting: '\u{1FAB4}',
+/**
+ * The icon a task type is drawn with. Like the key-returning helpers above, it
+ * answers "*which* icon?" and leaves the drawing to `AppIcon`; the import is
+ * type-only, so this module still has no runtime dependency on a component.
+ */
+export function taskTypeIcon(type: TaskType): IconName {
+  const icons: Record<TaskType, IconName> = {
+    watering: 'watering',
+    fertilization: 'fertilization',
+    misting: 'misting',
+    repotting: 'repotting',
   }
-  return emojis[type]
+  return icons[type]
 }

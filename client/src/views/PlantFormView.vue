@@ -5,6 +5,7 @@ import { plantsApi } from '../api/plants'
 import { useI18n } from 'vue-i18n'
 import { useApiError } from '../composables/useApiError'
 import ImageUpload from '../components/ImageUpload.vue'
+import LoadingPlaceholder from '../components/LoadingPlaceholder.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -86,22 +87,20 @@ async function handleSubmit() {
 
 <template>
   <div class="mx-auto max-w-lg">
-    <h1 class="text-2xl font-bold text-gray-900">
+    <h1 class="font-display text-3xl font-semibold text-ink">
       {{ isEditing ? $t('plants.edit') : $t('plants.addNew') }}
     </h1>
 
-    <div v-if="fetchLoading" class="mt-12 flex justify-center">
-      <div class="h-10 w-10 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
-    </div>
+    <LoadingPlaceholder v-if="fetchLoading" class="mt-6" :count="2" />
 
     <form v-else class="mt-6 space-y-6" @submit.prevent="handleSubmit">
-      <div v-if="error" class="rounded-md bg-red-50 p-3 text-sm text-red-700">
+      <div v-if="error" class="rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink">
         {{ error }}
       </div>
 
       <!-- Image upload -->
       <div>
-        <label class="mb-2 block text-sm font-medium text-gray-700">{{ $t('plants.photo') }}</label>
+        <label class="field-label">{{ $t('plants.photo') }}</label>
         <ImageUpload
           :current-image-url="currentImageUrl"
           @file-selected="handleFileSelected"
@@ -110,37 +109,37 @@ async function handleSubmit() {
 
       <!-- Name -->
       <div>
-        <label for="plant-name" class="block text-sm font-medium text-gray-700">{{ $t('plants.name') }}</label>
+        <label for="plant-name" class="field-label">{{ $t('plants.name') }}</label>
         <input
           id="plant-name"
           v-model="name"
           type="text"
           required
-          class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          class="field-input mt-1"
           :placeholder="$t('plants.namePlaceholder')"
         />
       </div>
 
       <!-- Location -->
       <div>
-        <label for="plant-location" class="block text-sm font-medium text-gray-700">{{ $t('plants.location') }}</label>
+        <label for="plant-location" class="field-label">{{ $t('plants.location') }}</label>
         <input
           id="plant-location"
           v-model="location"
           type="text"
-          class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          class="field-input mt-1"
           :placeholder="$t('plants.locationPlaceholder')"
         />
       </div>
 
       <!-- Instructions -->
       <div>
-        <label for="plant-instructions" class="block text-sm font-medium text-gray-700">{{ $t('plants.instructions') }}</label>
+        <label for="plant-instructions" class="field-label">{{ $t('plants.instructions') }}</label>
         <textarea
           id="plant-instructions"
           v-model="instructions"
           rows="3"
-          class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          class="field-input mt-1"
           :placeholder="$t('plants.instructionsPlaceholder')"
         />
       </div>
@@ -150,13 +149,13 @@ async function handleSubmit() {
         <button
           type="submit"
           :disabled="loading"
-          class="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+          class="btn btn-primary flex-1"
         >
           {{ loading ? $t('common.saving') : isEditing ? $t('common.saveChanges') : $t('plants.addPlant') }}
         </button>
         <button
           type="button"
-          class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+          class="btn btn-quiet"
           @click="router.back()"
         >
           {{ $t('common.cancel') }}

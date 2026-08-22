@@ -5,8 +5,11 @@ import { useAuthStore } from '../stores/auth'
 import { useTasksStore } from '../stores/tasks'
 import type { Task } from '../types'
 import { isActive } from '../utils/agenda'
+import AppIcon from '../components/AppIcon.vue'
 import TaskAgenda from '../components/TaskAgenda.vue'
 import TaskCalendar from '../components/TaskCalendar.vue'
+import LoadingPlaceholder from '../components/LoadingPlaceholder.vue'
+import SegmentedControl from '../components/SegmentedControl.vue'
 
 type ViewMode = 'agenda' | 'calendar'
 
@@ -58,11 +61,11 @@ onMounted(refresh)
   <div>
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ $t('tasks.title') }}</h1>
+        <h1 class="font-display text-3xl font-semibold text-ink">{{ $t('tasks.title') }}</h1>
         <!-- One whole sentence per branch, not "task" + a conditional "s":
              Spanish and Basque inflect the verb differently from English, so
              the fragments cannot be reassembled per locale. -->
-        <p class="mt-1 text-sm text-gray-500">
+        <p class="mt-1 text-sm text-ink-muted">
           {{
             outstanding > 0
               ? t('tasks.outstanding', { count: outstanding, name: auth.user?.displayName }, outstanding)
@@ -71,34 +74,30 @@ onMounted(refresh)
         </p>
       </div>
 
-      <!-- Agenda / calendar switch -->
-      <div class="inline-flex rounded-lg bg-gray-100 p-0.5" role="group">
-        <button
-          class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-          :class="mode === 'agenda' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
-          :aria-pressed="mode === 'agenda'"
-          @click="mode = 'agenda'"
-        >
-          {{ $t('tasks.agenda') }}
-        </button>
-        <button
-          class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-          :class="mode === 'calendar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
-          :aria-pressed="mode === 'calendar'"
-          @click="mode = 'calendar'"
-        >
-          {{ $t('tasks.calendar') }}
-        </button>
-      </div>
+      <SegmentedControl
+        v-model="mode"
+        :options="[
+          { value: 'agenda', label: t('tasks.agenda') },
+          { value: 'calendar', label: t('tasks.calendar') },
+        ]"
+      />
     </div>
 
-    <p v-if="tasksStore.error" class="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+    <p
+      v-if="tasksStore.error"
+      class="mt-4 flex items-center gap-2 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink"
+    >
+      <AppIcon name="alert" :size="16" class="shrink-0" />
       {{ tasksStore.error }}
     </p>
 
-    <div v-if="tasksStore.loading && tasksStore.tasks.length === 0" class="mt-12 flex justify-center">
-      <div class="h-10 w-10 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
-    </div>
+    <!-- A skeleton in the shape of the agenda, not a spinner: the rows land
+         where the placeholders already are. -->
+    <LoadingPlaceholder
+      v-if="tasksStore.loading && tasksStore.tasks.length === 0"
+      class="mt-6"
+      :count="4"
+    />
 
     <div v-else class="mt-6">
       <TaskAgenda

@@ -127,8 +127,8 @@ async function runImport() {
 </script>
 
 <template>
-  <section class="mt-4 rounded-lg border border-gray-200 bg-white p-5">
-    <h2 class="mb-1 text-lg font-semibold text-gray-800">
+  <section class="card flex flex-col gap-4 p-5">
+    <h2 class="font-display text-lg font-semibold leading-tight text-ink">
       {{ $t('settings.data.title') }}
     </h2>
     <p class="mb-4 text-xs text-gray-500">{{ $t('settings.data.hint') }}</p>
@@ -146,19 +146,19 @@ async function runImport() {
       <button
         type="button"
         :disabled="exporting"
-        class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:cursor-not-allowed disabled:opacity-50"
+        class="btn btn-quiet"
         @click="exportData"
       >
         {{ exporting ? $t('settings.data.exporting') : $t('settings.data.exportAction') }}
       </button>
     </div>
 
-    <div v-if="exportError" class="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">
+    <div v-if="exportError" class="mt-3 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink">
       {{ exportError }}
     </div>
     <div
       v-else-if="exportedName"
-      class="mt-3 rounded-md bg-green-50 p-3 text-sm text-green-700"
+      class="mt-3 rounded-md bg-done-soft px-3 py-2.5 text-sm text-done-ink"
     >
       {{ $t('settings.data.exportDone', { filename: exportedName }) }}
     </div>
@@ -181,7 +181,7 @@ async function runImport() {
         type="file"
         accept=".zip,application/zip"
         :disabled="busy"
-        class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-50 disabled:opacity-50"
+        class="block w-full text-sm text-ink-muted file:mr-3 file:rounded-md file:border file:border-line-strong file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-ink hover:file:bg-surface-sunk disabled:opacity-50"
         @change="handleFileChange"
       />
 
@@ -250,7 +250,7 @@ async function runImport() {
              "delete your 14 plants" is a decision someone can actually make. -->
         <div
           v-if="mode === 'replace'"
-          class="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700"
+          class="mt-3 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink"
         >
           <p>
             {{ $t('settings.data.replaceWarning', { count: preview.existingPlants }) }}
@@ -269,7 +269,7 @@ async function runImport() {
           <button
             type="button"
             :disabled="!canImport"
-            class="rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:cursor-not-allowed disabled:opacity-50"
+            class="btn btn-primary"
             :class="mode === 'replace' ? 'bg-red-600 hover:bg-red-700' : ''"
             @click="runImport"
           >
@@ -278,7 +278,7 @@ async function runImport() {
           <button
             type="button"
             :disabled="busy"
-            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-50"
+            class="btn btn-quiet"
             @click="resetImport"
           >
             {{ $t('common.cancel') }}
@@ -286,13 +286,13 @@ async function runImport() {
         </div>
       </div>
 
-      <div v-if="importError" class="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">
+      <div v-if="importError" class="mt-3 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink">
         {{ importError }}
       </div>
 
       <div
         v-if="summary"
-        class="mt-3 rounded-md bg-green-50 p-3 text-sm text-green-700"
+        class="mt-3 rounded-md bg-done-soft px-3 py-2.5 text-sm text-done-ink"
       >
         <p class="font-medium">{{ $t('settings.data.importDone') }}</p>
 

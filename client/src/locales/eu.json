@@ -5,6 +5,7 @@
   "common": {
     "add": "Gehitu",
     "cancel": "Utzi",
+    "close": "Itxi",
     "confirm": "Berretsi",
     "create": "Sortu",
     "delete": "Ezabatu",
@@ -22,21 +23,21 @@
     "eu": "Euskara"
   },
   "nav": {
-    "tasks": "Zereginak",
-    "inventory": "Inbentarioa",
-    "addPlant": "+ Gehitu landarea",
+    "care": "Zaintza",
+    "garden": "Lorategia",
+    "addPlant": "Gehitu landarea",
     "settings": "Ezarpenak",
     "adminPanel": "Administrazio-panela",
     "logout": "Amaitu saioa",
-    "toggleMenu": "Ireki edo itxi nabigazio-menua",
-    "accountMenu": "Kontuaren menua"
+    "accountMenu": "Kontuaren menua",
+    "account": "Kontua"
   },
   "routes": {
     "login": "Hasi saioa",
     "register": "Sortu kontua",
     "authCallback": "Saioa hasten",
-    "tasks": "Zereginak",
-    "inventory": "Inbentarioa",
+    "care": "Zaintza",
+    "garden": "Lorategia",
     "plantNew": "Landare berria",
     "plantDetail": "Landarea",
     "plantEdit": "Editatu landarea",
@@ -81,7 +82,7 @@
     "backToLogin": "Itzuli saio-hasierara"
   },
   "tasks": {
-    "title": "Zereginak",
+    "title": "Zaintza",
     "outstanding": "Zeregin {count}ek zure arreta behar du, {name}. | {count} zereginek zure arreta behar dute, {name}.",
     "allClear": "Ez dago ezer egiteke — lan bikaina, {name}.",
     "agenda": "Agenda",
@@ -129,17 +130,17 @@
     "overdueByDays": "Egun {count} atzeratuta | {count} egun atzeratuta"
   },
   "plants": {
-    "inventory": "Inbentarioa",
-    "inventorySubtitle": "{name}(r)en landare guztiak eta zurekin partekatutakoak.",
+    "garden": "Lorategia",
+    "gardenSubtitle": "{name}(r)en landare guztiak eta zurekin partekatutakoak.",
     "noneYet": "Oraindik ez dago landarerik",
     "getStarted": "Hasteko, gehitu zure lehen landarea.",
-    "addFirst": "+ Gehitu zure lehen landarea",
-    "backToInventory": "Itzuli inbentariora",
+    "addFirst": "Gehitu zure lehen landarea",
+    "backToGarden": "Itzuli lorategira",
     "share": "Partekatu",
     "careInstructions": "Zaintza-jarraibideak",
     "tasks": "Zereginak",
     "schedules": "Ordutegiak",
-    "imageHistory": "Argazkien historia",
+    "imageHistory": "Argazkiak",
     "photoAlt": "{name}(r)en argazkia",
     "deleteTitle": "Ezabatu landarea",
     "deleteConfirm": "Ziur zaude {name} ezabatu nahi duzula? Ekintza hau ezin da desegin.",

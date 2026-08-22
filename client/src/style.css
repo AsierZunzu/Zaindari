@@ -1,15 +1,405 @@
 @import "tailwindcss";
 
+/*
+ * Self-hosted and bundled by Vite (never a CDN): an installed PWA has to render
+ * in its own typeface with no network.
+ *
+ * These faces are declared by hand rather than by importing the Fontsource
+ * stylesheets, for two reasons. Only the weight axis is wanted — Fraunces'
+ * optical-size file is ~55 KB larger for a face only ever used at heading
+ * sizes — and only the latin subsets are: the packages also ship a Vietnamese
+ * subset, which no supported locale needs but which the Workbox precache would
+ * still download eagerly on install (~19 KB).
+ *
+ * `vite.config.ts` must keep `woff2` in `injectManifest.globPatterns`, or these
+ * are the one asset the precache misses.
+ */
+@font-face {
+  font-family: "Fraunces Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/fraunces/files/fraunces-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+/* Basque and Spanish reach past latin-1 (ü, ñ, ·, œ); this is the subset that
+   carries them. */
+@font-face {
+  font-family: "Fraunces Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/fraunces/files/fraunces-latin-ext-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Public Sans Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/public-sans/files/public-sans-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Public Sans Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/public-sans/files/public-sans-latin-ext-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/*
+ * The palette is a herbarium: warm paper ground, deep moss for structure and
+ * action, earth pigments for status. Two rules keep it from drifting back into
+ * stock-Tailwind territory:
+ *
+ * 1. Separation is carried by `--color-line` hairlines and ground shifts, not
+ *    by shadows. `--shadow-lift` is for things that genuinely float (menus,
+ *    popovers, the mobile bar) and is the only shadow with any real presence.
+ * 2. Green is the single accent. Status uses clay and honey — never a
+ *    traffic-light red or yellow.
+ *
+ * Tailwind's own `gray`, `green`, `red`, `yellow` and `blue` scales are
+ * re-pointed rather than replaced by new names. Those five families are the
+ * only ones the app uses (about 400 utility occurrences), so redefining them
+ * re-skins every screen at once, and the per-component work that follows is
+ * about hierarchy and spacing rather than a mechanical find-and-replace.
+ */
 @theme {
-  --color-primary-50: #f0fdf4;
-  --color-primary-100: #dcfce7;
-  --color-primary-200: #bbf7d0;
-  --color-primary-300: #86efac;
-  --color-primary-400: #4ade80;
-  --color-primary-500: #22c55e;
-  --color-primary-600: #16a34a;
-  --color-primary-700: #15803d;
-  --color-primary-800: #166534;
-  --color-primary-900: #14532d;
-  --color-primary-950: #052e16;
+  /* --- type ------------------------------------------------------------- */
+  --font-sans: "Public Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
+
+  /* --- stone: paper, hairlines, ink ------------------------------------- */
+  /* Warm greige, resolving to a green-black at the dark end so body text
+     shares the palette's cast instead of sitting on it as neutral #111. */
+  --color-gray-50: #f7f5ef;
+  --color-gray-100: #efece2;
+  --color-gray-200: #e3ded2;
+  --color-gray-300: #cfc8b8;
+  --color-gray-400: #ada593;
+  --color-gray-500: #6f6a5b;
+  --color-gray-600: #57534a;
+  --color-gray-700: #44413a;
+  --color-gray-800: #33312b;
+  --color-gray-900: #23281f;
+  --color-gray-950: #171b14;
+
+  /* --- moss: the one accent -------------------------------------------- */
+  --color-primary-50: #f1f4ee;
+  --color-primary-100: #e2e9dc;
+  --color-primary-200: #c7d2bc;
+  --color-primary-300: #a5b899;
+  --color-primary-400: #86a077;
+  --color-primary-500: #6b8f5e;
+  --color-primary-600: #57774c;
+  --color-primary-700: #4a6741;
+  --color-primary-800: #3a5134;
+  --color-primary-900: #2c3e28;
+  --color-primary-950: #1b2718;
+
+  /* `green-*` is the same moss, so the existing "done" badges inherit it. */
+  --color-green-50: #f1f4ee;
+  --color-green-100: #e2e9dc;
+  --color-green-200: #c7d2bc;
+  --color-green-300: #a5b899;
+  --color-green-400: #86a077;
+  --color-green-500: #6b8f5e;
+  --color-green-600: #57774c;
+  --color-green-700: #4a6741;
+  --color-green-800: #3a5134;
+  --color-green-900: #2c3e28;
+  --color-green-950: #1b2718;
+
+  /* --- clay: overdue, destructive --------------------------------------- */
+  --color-red-50: #fbf3ee;
+  --color-red-100: #f4e4db;
+  --color-red-200: #e8c9b9;
+  --color-red-300: #d9a98e;
+  --color-red-400: #c3805c;
+  --color-red-500: #b06b48;
+  --color-red-600: #a6603f;
+  --color-red-700: #8a4e33;
+  --color-red-800: #6e3e28;
+  --color-red-900: #56321f;
+  --color-red-950: #2e1b11;
+
+  /* --- honey: due today, snoozed ---------------------------------------- */
+  --color-yellow-50: #fcf7ea;
+  --color-yellow-100: #f8eeda;
+  --color-yellow-200: #eedcb0;
+  --color-yellow-300: #dfc282;
+  --color-yellow-400: #d0a455;
+  --color-yellow-500: #c08a2e;
+  --color-yellow-600: #a87829;
+  --color-yellow-700: #8a6320;
+  --color-yellow-800: #6b4c19;
+  --color-yellow-900: #4e3712;
+  --color-yellow-950: #2a1e09;
+
+  /* --- lake: a guard, not a palette ------------------------------------- */
+  /* Nothing uses `blue-*` any more — the undo button was the app's only cool
+     accent and is now ink. These stay defined so that a stray `bg-blue-50`
+     renders as a desaturated green-teal that belongs to the garden, rather
+     than punching a hole in the palette with stock Tailwind blue. */
+  --color-blue-50: #eff4f3;
+  --color-blue-100: #dce8e6;
+  --color-blue-200: #bcd0cd;
+  --color-blue-300: #94b2ae;
+  --color-blue-400: #6b908c;
+  --color-blue-500: #4f7370;
+  --color-blue-600: #43635f;
+  --color-blue-700: #3c5757;
+  --color-blue-800: #2f4443;
+  --color-blue-900: #24332f;
+  --color-blue-950: #131c1b;
+
+  /* --- semantic aliases: what components should reach for --------------- */
+  --color-ground: #faf8f3;
+  --color-surface: #fffdf9;
+  --color-surface-sunk: #f3f0e8;
+  --color-ink: #23281f;
+  --color-ink-muted: #5c6357;
+  --color-ink-faint: #6f6a5b;
+  --color-line: #e3ded2;
+  --color-line-strong: #cfc8b8;
+
+  /* Status tones. Every `-ink` clears WCAG AA on both its `-soft` fill and on
+     `--color-surface`; the bare tone is a fill or a dot, never text. */
+  --color-overdue: #a6603f;
+  --color-overdue-soft: #f4e4db;
+  --color-overdue-ink: #8a4e33;
+  --color-due: #c08a2e;
+  --color-due-soft: #f8eeda;
+  --color-due-ink: #8a6320;
+  --color-done: #4a6741;
+  --color-done-soft: #e2e9dc;
+  --color-done-ink: #3a5134;
+  --color-idle: #8b8474;
+  --color-idle-soft: #f0ede4;
+  --color-idle-ink: #57534a;
+
+  /* --- shape ------------------------------------------------------------ */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+
+  /* Ink-tinted rather than black: a neutral shadow over warm paper greys the
+     card it is supposed to lift. */
+  --shadow-2xs: 0 1px 1px rgb(35 40 31 / 0.03);
+  --shadow-xs: 0 1px 2px rgb(35 40 31 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(35 40 31 / 0.05);
+  --shadow-md: 0 2px 6px -2px rgb(35 40 31 / 0.07);
+  --shadow-lg: 0 4px 12px -4px rgb(35 40 31 / 0.09);
+  --shadow-xl: 0 8px 24px -10px rgb(35 40 31 / 0.12);
+  --shadow-lift: 0 6px 20px -8px rgb(35 40 31 / 0.18);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Headings are the serif by default, so a view that forgets `font-display`
+     still reads as part of the design. Tracking tightens as size grows —
+     Fraunces sets loose at display sizes otherwise. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+  }
+
+  h1 {
+    letter-spacing: -0.025em;
+  }
+
+  ::selection {
+    background-color: var(--color-primary-200);
+    color: var(--color-ink);
+  }
+
+  /* The app shipped with browser-default focus rings; this makes keyboard
+     focus legible against paper without the blue. */
+  :focus-visible {
+    outline: 2px solid var(--color-primary-600);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/*
+ * Paper grain. A single rasterised tile behind everything at 2.5% — enough to
+ * stop large flat areas reading as a screenshot of a CSS framework, not enough
+ * to be seen as texture. Delete this one rule to remove it entirely.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/*
+ * Recipes. These exist because the same five utility strings were being
+ * retyped across ~4000 lines of template — `rounded-lg border border-gray-200
+ * bg-white p-5` appears verbatim five times in SettingsView alone. Plain CSS
+ * properties rather than `@apply`, so a component can still override any of
+ * them with a utility.
+ */
+
+@utility card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+}
+
+/* An inset well: schedule rows, image placeholders, empty states. */
+@utility card-inset {
+  background-color: var(--color-surface-sunk);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+
+/* Small caps-ish label above a group. Sans, not serif: it is a signpost, and
+   the serif is reserved for things that are actually titles. */
+@utility section-label {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  border: 1px solid transparent;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@utility btn-primary {
+  background-color: var(--color-primary-700);
+  color: #fffdf9;
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-primary-800);
+  }
+}
+
+/* The default for anything that is not the one primary action on a screen. */
+@utility btn-quiet {
+  background-color: var(--color-surface);
+  border-color: var(--color-line-strong);
+  color: var(--color-ink);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-surface-sunk);
+  }
+}
+
+@utility btn-danger {
+  background-color: var(--color-surface);
+  border-color: var(--color-overdue-soft);
+  color: var(--color-overdue-ink);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-overdue-soft);
+  }
+}
+
+@utility field-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  margin-bottom: 0.375rem;
+}
+
+@utility field-input {
+  display: block;
+  width: 100%;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+
+  &::placeholder {
+    color: var(--color-ink-faint);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary-600);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+  }
+}
+
+@utility badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: var(--radius-sm);
+  padding: 0.125rem 0.4375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.125rem;
+  white-space: nowrap;
 }

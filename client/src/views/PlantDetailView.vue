@@ -1,18 +1,25 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { plantsApi } from '../api/plants'
 import { tasksApi } from '../api/tasks'
 import type { PlantWithImage } from '../api/plants'
 import type { PlantImage, Task } from '../types'
 import { useApiError } from '../composables/useApiError'
+import AppIcon from '../components/AppIcon.vue'
 import AuthedImage from '../components/AuthedImage.vue'
+import SegmentedControl from '../components/SegmentedControl.vue'
 import ShareDialog from '../components/ShareDialog.vue'
 import TaskList from '../components/TaskList.vue'
+import LoadingPlaceholder from '../components/LoadingPlaceholder.vue'
 import ScheduleEditor from '../components/ScheduleEditor.vue'
+
+type Pane = 'tasks' | 'schedules' | 'photos'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 const { apiErrorMessage } = useApiError()
 
@@ -24,8 +31,24 @@ const error = ref('')
 const tasks = ref<Task[]>([])
 const showDeleteConfirm = ref(false)
 const showShareDialog = ref(false)
-const showSchedules = ref(false)
 const selectedImageUrl = ref<string | null>(null)
+
+/**
+ * The page used to be one long scroll of six sections that all looked alike.
+ * They are three different questions — what needs doing, how often it should
+ * happen, and what this plant looked like before — so they are three panes.
+ */
+const pane = ref<Pane>('tasks')
+
+const panes = computed(() => {
+  const options: { value: Pane; label: string }[] = [
+    { value: 'tasks', label: t('plants.tasks') },
+    { value: 'schedules', label: t('plants.schedules') },
+  ]
+  // Nothing to show until the plant has been photographed at least once.
+  if (images.value.length > 0) options.push({ value: 'photos', label: t('plants.imageHistory') })
+  return options
+})
 
 onMounted(async () => {
   try {
@@ -51,7 +74,7 @@ async function refreshTasks() {
 async function handleDelete() {
   try {
     await plantsApi.delete(plantId)
-    router.push('/inventory')
+    router.push('/garden')
   } catch (e: unknown) {
     error.value = apiErrorMessage(e, 'errors.plants.deleteFailed')
     showDeleteConfirm.value = false
@@ -61,31 +84,32 @@ async function handleDelete() {
 
 <template>
   <div>
-    <!-- Back button -->
     <button
-      class="mb-4 inline-flex items-center gap-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
-      @click="router.push('/inventory')"
+      class="mb-4 inline-flex items-center gap-1 text-sm font-medium text-ink-faint transition-colors hover:text-ink"
+      @click="router.push('/garden')"
     >
-      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-      </svg>
-      {{ $t('plants.backToInventory') }}
+      <AppIcon name="chevron-left" :size="16" />
+      {{ $t('plants.backToGarden') }}
     </button>
 
-    <!-- Loading -->
-    <div v-if="loading" class="mt-12 flex justify-center">
-      <div class="h-10 w-10 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
-    </div>
+    <LoadingPlaceholder v-if="loading" :count="3" />
 
-    <!-- Error -->
-    <div v-else-if="error" class="rounded-md bg-red-50 p-4 text-sm text-red-700">
+    <p
+      v-else-if="error"
+      class="flex items-center gap-2 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink"
+    >
+      <AppIcon name="alert" :size="16" class="shrink-0" />
       {{ error }}
-    </div>
+    </p>
 
-    <!-- Plant detail -->
-    <div v-else-if="plant">
-      <!-- Hero image -->
-      <div class="overflow-hidden rounded-xl bg-primary-50">
+    <div v-else-if="plant" class="flex flex-col gap-6">
+      <!--
+        The photograph is the plant's identity, so it runs full width with the
+        name set into it. The scrim is the one gradient in the app: white type
+        needs a floor under it, and a solid bar would cover the picture.
+        With no photo there is nothing to sit on, so the name sits below.
+      -->
+      <div class="relative overflow-hidden rounded-lg border border-line bg-surface-sunk">
         <div class="aspect-[16/9] w-full">
           <AuthedImage
             v-if="plant.currentImage"
@@ -93,102 +117,77 @@ async function handleDelete() {
             :alt="plant.name"
             class="h-full w-full object-cover"
           />
-          <div v-else class="flex h-full w-full items-center justify-center">
-            <span class="text-8xl">&#127793;</span>
+          <div v-else class="flex h-full w-full items-center justify-center text-primary-500">
+            <AppIcon name="sprig" :size="88" :stroke-width="1" />
           </div>
+        </div>
+        <div
+          v-if="plant.currentImage"
+          class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/75 to-transparent px-4 pb-3 pt-10"
+        >
+          <h1 class="font-display text-2xl font-semibold text-ground drop-shadow-sm">
+            {{ plant.name }}
+          </h1>
+          <p v-if="plant.location" class="flex items-center gap-1 text-sm text-ground/80">
+            <AppIcon name="pin" :size="14" />{{ plant.location }}
+          </p>
         </div>
       </div>
 
-      <!-- Plant info -->
-      <div class="mt-6">
-        <div class="flex items-start justify-between">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">{{ plant.name }}</h1>
-            <p v-if="plant.location" class="mt-1 flex items-center gap-1 text-sm text-gray-500">
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {{ plant.location }}
-            </p>
-          </div>
-
-          <!-- Action buttons -->
-          <div class="flex gap-2">
-            <RouterLink
-              :to="`/plants/${plant.id}/edit`"
-              class="rounded-lg border border-gray-300 bg-white p-2 text-gray-600 shadow-sm transition-colors hover:bg-gray-50"
-              :title="$t('common.edit')"
-            >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </RouterLink>
-            <button
-              class="rounded-lg border border-gray-300 bg-white p-2 text-gray-600 shadow-sm transition-colors hover:bg-gray-50"
-              :title="$t('plants.share')"
-              @click="showShareDialog = true"
-            >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
-            <button
-              class="rounded-lg border border-red-200 bg-white p-2 text-red-500 shadow-sm transition-colors hover:bg-red-50"
-              :title="$t('common.delete')"
-              @click="showDeleteConfirm = true"
-            >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          </div>
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div v-if="!plant.currentImage">
+          <h1 class="font-display text-2xl font-semibold text-ink">{{ plant.name }}</h1>
+          <p v-if="plant.location" class="flex items-center gap-1 text-sm text-ink-faint">
+            <AppIcon name="pin" :size="14" />{{ plant.location }}
+          </p>
         </div>
-
-        <!-- Instructions -->
-        <div v-if="plant.instructions" class="mt-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-          <h2 class="mb-2 text-sm font-semibold text-gray-700">{{ $t('plants.careInstructions') }}</h2>
-          <p class="whitespace-pre-line text-sm text-gray-600">{{ plant.instructions }}</p>
-        </div>
-
-        <!-- Tasks -->
-        <div class="mt-6">
-          <h2 class="mb-3 text-sm font-semibold text-gray-700">{{ $t('plants.tasks') }}</h2>
-          <TaskList :tasks="tasks" @task-updated="refreshTasks" />
-        </div>
-
-        <!-- Schedules -->
-        <div class="mt-6">
-          <button
-            class="flex w-full items-center justify-between rounded-lg bg-white p-3 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-gray-100 transition-colors hover:bg-gray-50"
-            @click="showSchedules = !showSchedules"
+        <!-- Edit and share are safe and frequent, so they stay up here.
+             Deleting a plant is neither, and lives at the foot of the page. -->
+        <div class="ml-auto flex gap-2">
+          <RouterLink
+            :to="`/plants/${plant.id}/edit`"
+            class="btn btn-quiet"
+            :title="$t('common.edit')"
           >
-            <span>{{ $t('plants.schedules') }}</span>
-            <svg
-              class="h-4 w-4 transform transition-transform"
-              :class="showSchedules ? 'rotate-180' : ''"
-              fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
+            <AppIcon name="pencil" :size="16" />
+            <span class="sr-only sm:not-sr-only">{{ $t('common.edit') }}</span>
+          </RouterLink>
+          <button class="btn btn-quiet" :title="$t('plants.share')" @click="showShareDialog = true">
+            <AppIcon name="share" :size="16" />
+            <span class="sr-only sm:not-sr-only">{{ $t('plants.share') }}</span>
           </button>
-          <div v-if="showSchedules" class="mt-2">
-            <ScheduleEditor :plant-id="plantId" />
-          </div>
         </div>
+      </div>
 
-        <!-- Image history -->
-        <div v-if="images.length > 1" class="mt-6">
-          <h2 class="mb-3 text-sm font-semibold text-gray-700">{{ $t('plants.imageHistory') }}</h2>
+      <div v-if="plant.instructions" class="card p-4">
+        <h2 class="section-label mb-2">{{ $t('plants.careInstructions') }}</h2>
+        <p class="whitespace-pre-line text-sm text-ink-muted">{{ plant.instructions }}</p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <SegmentedControl v-model="pane" :options="panes" class="self-start" />
+
+        <TaskList v-if="pane === 'tasks'" :tasks="tasks" @task-updated="refreshTasks" />
+
+        <ScheduleEditor v-else-if="pane === 'schedules'" :plant-id="plantId" />
+
+        <div v-else class="flex flex-col gap-3">
           <div class="grid grid-cols-4 gap-2 sm:grid-cols-6">
             <button
               v-for="img in images"
               :key="img.id"
-              class="overflow-hidden rounded-lg ring-2 transition-all"
-              :class="selectedImageUrl === `/api/images/${img.id}` ? 'ring-primary-500' : 'ring-transparent hover:ring-gray-300'"
-              @click="selectedImageUrl = selectedImageUrl === `/api/images/${img.id}` ? null : `/api/images/${img.id}`"
+              class="overflow-hidden rounded-sm ring-2 transition-all"
+              :class="
+                selectedImageUrl === `/api/images/${img.id}`
+                  ? 'ring-primary-500'
+                  : 'ring-transparent hover:ring-line-strong'
+              "
+              @click="
+                selectedImageUrl =
+                  selectedImageUrl === `/api/images/${img.id}` ? null : `/api/images/${img.id}`
+              "
             >
-              <div class="aspect-square bg-primary-50">
+              <div class="aspect-square bg-surface-sunk">
                 <AuthedImage
                   :src="`/api/images/${img.id}`"
                   :alt="$t('plants.photoAlt', { name: plant.name })"
@@ -198,39 +197,43 @@ async function handleDelete() {
             </button>
           </div>
 
-          <!-- Full size preview -->
-          <div v-if="selectedImageUrl" class="mt-3 overflow-hidden rounded-xl">
+          <div v-if="selectedImageUrl" class="overflow-hidden rounded-lg border border-line">
             <AuthedImage
               :src="selectedImageUrl"
               :alt="plant.name"
-              class="w-full rounded-xl object-contain"
+              class="w-full object-contain"
             />
           </div>
         </div>
       </div>
+
+      <!-- Separated by a rule and put last: an irreversible action should take
+           a deliberate scroll to reach, not sit a thumb's width from Edit. -->
+      <div class="mt-2 border-t border-line pt-4">
+        <button class="btn btn-danger" @click="showDeleteConfirm = true">
+          <AppIcon name="trash" :size="16" />
+          {{ $t('plants.deleteTitle') }}
+        </button>
+      </div>
     </div>
 
-    <!-- Delete confirmation dialog -->
     <Teleport to="body">
       <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/50" @click="showDeleteConfirm = false" />
-        <div class="relative w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
-          <h2 class="text-lg font-bold text-gray-900">{{ $t('plants.deleteTitle') }}</h2>
+        <div class="absolute inset-0 bg-ink/40" @click="showDeleteConfirm = false" />
+        <div class="relative w-full max-w-sm rounded-lg border border-line bg-surface p-6 shadow-lift">
+          <h2 class="font-display text-lg font-semibold text-ink">{{ $t('plants.deleteTitle') }}</h2>
           <!-- i18n-t, not string concatenation: the plant name sits in a
                different position in each language, so the slot has to travel
                with the sentence rather than be spliced around it. -->
-          <i18n-t keypath="plants.deleteConfirm" tag="p" class="mt-2 text-sm text-gray-600">
-            <template #name><strong>{{ plant?.name }}</strong></template>
+          <i18n-t keypath="plants.deleteConfirm" tag="p" class="mt-2 text-sm text-ink-muted">
+            <template #name><strong class="text-ink">{{ plant?.name }}</strong></template>
           </i18n-t>
-          <div class="mt-4 flex justify-end gap-3">
-            <button
-              class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-              @click="showDeleteConfirm = false"
-            >
+          <div class="mt-5 flex justify-end gap-2">
+            <button class="btn btn-quiet" @click="showDeleteConfirm = false">
               {{ $t('common.cancel') }}
             </button>
             <button
-              class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-500"
+              class="btn border-transparent bg-overdue text-surface hover:bg-overdue-ink"
               @click="handleDelete"
             >
               {{ $t('common.delete') }}
@@ -240,7 +243,6 @@ async function handleDelete() {
       </div>
     </Teleport>
 
-    <!-- Share dialog -->
     <ShareDialog
       v-if="plant"
       :plant-id="plant.id"

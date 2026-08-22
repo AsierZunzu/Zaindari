@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Task, TaskWithPlant } from '../types'
-import { taskTypeEmoji, isOverdue, isDueToday } from '../utils/date'
+import { taskTypeIcon } from '../utils/date'
+import { statusTone, TONE_BADGE } from '../utils/tone'
 import { useTaskLabels } from '../composables/useTaskLabels'
 import TaskActions from './TaskActions.vue'
+import AppIcon from './AppIcon.vue'
 import AuthedImage from './AuthedImage.vue'
 
 const props = defineProps<{
@@ -16,14 +18,13 @@ defineEmits<{
 
 const { relativeDate, taskType, taskStatus, dueTime } = useTaskLabels()
 
-function badgeClass(): string {
-  if (props.task.status === 'done') return 'bg-green-100 text-green-700'
-  if (props.task.status === 'skipped') return 'bg-gray-100 text-gray-600'
-  if (props.task.status === 'snoozed') return 'bg-yellow-100 text-yellow-700'
-  if (isOverdue(props.task.dueAt)) return 'bg-red-100 text-red-700'
-  if (isDueToday(props.task.dueAt)) return 'bg-yellow-100 text-yellow-700'
-  return 'bg-gray-100 text-gray-600'
-}
+/**
+ * One decision, one place. `statusTone` in `utils/tone.ts` answers "how urgent
+ * is this?" and this component only paints the answer — which is what lets the
+ * calendar and the plant page agree with the agenda without repeating the
+ * if-chain each of them used to carry.
+ */
+const tone = computed(() => statusTone(props.task))
 
 /** Done and skipped tasks are struck through and dimmed. Must stay reactive:
  *  the row is keyed by task id, so completing one updates the prop in place
@@ -34,21 +35,26 @@ const settled = computed(
 </script>
 
 <template>
-  <div
-    class="rounded-lg bg-white p-3 shadow-sm ring-1 ring-gray-100"
-    :class="settled ? 'opacity-70' : ''"
-  >
+  <div class="card p-3" :class="settled ? 'opacity-70' : ''">
     <div class="flex items-start justify-between gap-3">
-      <div class="flex min-w-0 items-center gap-2">
+      <div class="flex min-w-0 items-center gap-2.5">
         <!--
-          The plant's photo, with the task-type emoji badged onto it: at this
+          The plant's photo, with the task-type icon badged onto it: at this
           size the picture says *which plant* faster than the name does, while
-          the emoji still says *what to do*. Plants with no photo fall back to
-          the same sprout PlantCard uses, so the row never changes height.
+          the icon still says *what to do*. Plants with no photo fall back to
+          the same sprig PlantCard uses, so the row never changes height.
+        -->
+        <!--
+          Hidden from assistive tech, and skipped by the tab order: the plant's
+          name is a second link to the same page immediately below, so exposing
+          this one would announce every row's destination twice — once with no
+          name at all when the plant has no photo to take an `alt` from.
         -->
         <RouterLink
           :to="`/plants/${task.plant.id}`"
-          class="relative block size-11 shrink-0 overflow-hidden rounded-lg bg-primary-50"
+          class="relative block size-11 shrink-0 overflow-hidden rounded-md bg-surface-sunk"
+          aria-hidden="true"
+          tabindex="-1"
         >
           <AuthedImage
             v-if="task.plant.currentImage"
@@ -56,19 +62,18 @@ const settled = computed(
             :alt="task.plant.name"
             class="h-full w-full object-cover"
           />
-          <span v-else class="flex h-full w-full items-center justify-center text-xl">
-            &#127793;
+          <span v-else class="flex h-full w-full items-center justify-center text-primary-500">
+            <AppIcon name="sprig" :size="22" />
           </span>
           <span
-            class="absolute -bottom-0.5 -right-0.5 rounded-full bg-white/90 px-0.5 text-xs leading-tight shadow-sm"
-            aria-hidden="true"
+            class="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full border border-line bg-surface text-ink-muted"
           >
-            {{ taskTypeEmoji(task.taskType) }}
+            <AppIcon :name="taskTypeIcon(task.taskType)" :size="13" />
           </span>
         </RouterLink>
         <div class="min-w-0">
           <p
-            class="truncate text-sm font-medium text-gray-900"
+            class="truncate text-sm font-semibold text-ink"
             :class="settled ? 'line-through' : ''"
           >
             {{ taskType(task.taskType) }}
@@ -77,20 +82,19 @@ const settled = computed(
             :to="`/plants/${task.plant.id}`"
             class="block truncate text-xs text-primary-700 hover:underline"
           >
-            {{ task.plant.name }}<span v-if="task.plant.location" class="text-gray-400">
+            {{ task.plant.name }}<span v-if="task.plant.location" class="text-ink-faint">
               &middot; {{ task.plant.location }}</span>
           </RouterLink>
-          <p class="text-xs text-gray-500">{{ dueTime(task.dueAt) }} &middot; {{ relativeDate(task.dueAt) }}</p>
+          <p class="text-xs text-ink-faint">
+            {{ dueTime(task.dueAt) }} &middot; {{ relativeDate(task.dueAt) }}
+          </p>
         </div>
       </div>
-      <span
-        class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-        :class="badgeClass()"
-      >
+      <span class="badge shrink-0" :class="TONE_BADGE[tone]">
         {{ taskStatus(task) }}
       </span>
     </div>
-    <div v-if="task.status !== 'skipped'" class="mt-2">
+    <div v-if="task.status !== 'skipped'" class="mt-2.5">
       <TaskActions :task="task" @task-updated="$emit('task-updated', $event)" />
     </div>
   </div>

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Task } from '../types'
-import { taskTypeEmoji, isOverdue, isDueToday } from '../utils/date'
+import { taskTypeIcon } from '../utils/date'
+import { statusTone, TONE_BADGE } from '../utils/tone'
 import { useTaskLabels } from '../composables/useTaskLabels'
+import AppIcon from './AppIcon.vue'
+import EmptyState from './EmptyState.vue'
 import TaskActions from './TaskActions.vue'
 
 const props = defineProps<{
@@ -15,115 +18,85 @@ const emit = defineEmits<{
 
 const { relativeDate, taskType, taskStatus } = useTaskLabels()
 
-const groupedTasks = computed(() => {
-  const pending = props.tasks.filter((t) => t.status === 'pending' || t.status === 'snoozed')
-  const done = props.tasks.filter((t) => t.status === 'done')
-  const skipped = props.tasks.filter((t) => t.status === 'skipped')
-  return { pending, done, skipped }
-})
+/**
+ * One plant's tasks, grouped. This was three copies of the same markup that
+ * had drifted apart — different opacities, one of them hardcoding its badge
+ * text instead of asking `taskStatus`. The differences that are real are the
+ * three flags below.
+ */
+const groups = computed(() => [
+  {
+    id: 'pending',
+    title: 'tasks.pending',
+    tasks: props.tasks.filter((t) => t.status === 'pending' || t.status === 'snoozed'),
+    dim: false,
+    actions: true,
+    showDue: true,
+  },
+  {
+    id: 'done',
+    title: 'tasks.recentlyCompleted',
+    tasks: props.tasks.filter((t) => t.status === 'done'),
+    dim: true,
+    actions: true,
+    showDue: true,
+  },
+  {
+    id: 'skipped',
+    title: 'tasks.skippedHeading',
+    // Skipped tasks are history: no date worth reading, and nothing to undo.
+    tasks: props.tasks.filter((t) => t.status === 'skipped'),
+    dim: true,
+    actions: false,
+    showDue: false,
+  },
+])
 
-function statusBadgeClass(task: Task): string {
-  if (task.status === 'done') return 'bg-green-100 text-green-700'
-  if (task.status === 'skipped') return 'bg-gray-100 text-gray-600'
-  if (task.status === 'snoozed') return 'bg-yellow-100 text-yellow-700'
-  // pending
-  if (isOverdue(task.dueAt)) return 'bg-red-100 text-red-700'
-  if (isDueToday(task.dueAt)) return 'bg-yellow-100 text-yellow-700'
-  return 'bg-gray-100 text-gray-600'
-}
-
-function onTaskUpdated(task: Task) {
-  emit('task-updated', task)
-}
+const isEmpty = computed(() => props.tasks.length === 0)
 </script>
 
 <template>
-  <div class="space-y-4">
-    <!-- Pending / Active tasks -->
-    <div v-if="groupedTasks.pending.length > 0">
-      <h3 class="mb-2 text-sm font-semibold text-gray-700">{{ $t('tasks.pending') }}</h3>
-      <div class="space-y-2">
-        <div
-          v-for="task in groupedTasks.pending"
-          :key="task.id"
-          class="rounded-lg bg-white p-3 shadow-sm ring-1 ring-gray-100"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex items-center gap-2">
-              <span class="text-lg">{{ taskTypeEmoji(task.taskType) }}</span>
-              <div>
-                <p class="text-sm font-medium text-gray-900">{{ taskType(task.taskType) }}</p>
-                <p class="text-xs text-gray-500">{{ relativeDate(task.dueAt) }}</p>
-              </div>
-            </div>
-            <span
-              class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-              :class="statusBadgeClass(task)"
-            >
-              {{ taskStatus(task) }}
-            </span>
-          </div>
-          <div class="mt-2">
-            <TaskActions :task="task" @task-updated="onTaskUpdated" />
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="flex flex-col gap-5">
+    <EmptyState v-if="isEmpty" :title="$t('tasks.none')" />
 
-    <!-- No pending tasks -->
     <div
-      v-if="groupedTasks.pending.length === 0 && groupedTasks.done.length === 0 && groupedTasks.skipped.length === 0"
-      class="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center"
+      v-for="group in groups.filter((g) => g.tasks.length > 0)"
+      :key="group.id"
+      class="flex flex-col gap-2"
     >
-      <p class="text-sm text-gray-500">{{ $t('tasks.none') }}</p>
-    </div>
+      <h3 class="section-label">{{ $t(group.title) }}</h3>
 
-    <!-- Recently completed -->
-    <div v-if="groupedTasks.done.length > 0">
-      <h3 class="mb-2 text-sm font-semibold text-gray-700">{{ $t('tasks.recentlyCompleted') }}</h3>
-      <div class="space-y-2">
-        <div
-          v-for="task in groupedTasks.done"
-          :key="task.id"
-          class="rounded-lg bg-white p-3 opacity-75 shadow-sm ring-1 ring-gray-100"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex items-center gap-2">
-              <span class="text-lg">{{ taskTypeEmoji(task.taskType) }}</span>
-              <div>
-                <p class="text-sm font-medium text-gray-900 line-through">{{ taskType(task.taskType) }}</p>
-                <p class="text-xs text-gray-500">{{ relativeDate(task.dueAt) }}</p>
-              </div>
-            </div>
-            <span class="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-              {{ $t('taskStatus.done') }}
+      <div
+        v-for="task in group.tasks"
+        :key="task.id"
+        class="card p-3"
+        :class="group.dim ? 'opacity-75' : ''"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex min-w-0 items-center gap-2.5">
+            <span
+              class="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-sunk text-ink-muted"
+            >
+              <AppIcon :name="taskTypeIcon(task.taskType)" :size="18" />
             </span>
+            <div class="min-w-0">
+              <p
+                class="truncate text-sm font-semibold text-ink"
+                :class="group.dim ? 'line-through' : ''"
+              >
+                {{ taskType(task.taskType) }}
+              </p>
+              <p v-if="group.showDue" class="text-xs text-ink-faint">
+                {{ relativeDate(task.dueAt) }}
+              </p>
+            </div>
           </div>
-          <div class="mt-2">
-            <TaskActions :task="task" @task-updated="onTaskUpdated" />
-          </div>
+          <span class="badge shrink-0" :class="TONE_BADGE[statusTone(task)]">
+            {{ taskStatus(task) }}
+          </span>
         </div>
-      </div>
-    </div>
-
-    <!-- Skipped -->
-    <div v-if="groupedTasks.skipped.length > 0">
-      <h3 class="mb-2 text-sm font-semibold text-gray-700">{{ $t('tasks.skippedHeading') }}</h3>
-      <div class="space-y-2">
-        <div
-          v-for="task in groupedTasks.skipped"
-          :key="task.id"
-          class="rounded-lg bg-white p-3 opacity-60 shadow-sm ring-1 ring-gray-100"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex items-center gap-2">
-              <span class="text-lg">{{ taskTypeEmoji(task.taskType) }}</span>
-              <p class="text-sm font-medium text-gray-500">{{ taskType(task.taskType) }}</p>
-            </div>
-            <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-              {{ $t('taskStatus.skipped') }}
-            </span>
-          </div>
+        <div v-if="group.actions" class="mt-2.5">
+          <TaskActions :task="task" @task-updated="emit('task-updated', $event)" />
         </div>
       </div>
     </div>

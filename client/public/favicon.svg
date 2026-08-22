@@ -1,4 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-  <rect width="48" height="48" rx="10" fill="#15803d"/>
-  <text x="24" y="25" font-size="28" text-anchor="middle" dominant-baseline="central">&#127807;</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
+  <rect width="24" height="24" rx="5" fill="#4a6741"/>
+  <g transform="translate(12 12) scale(0.86) translate(-12.6 -12.4)">
+    <path d="M12 21V12.4" fill="none" stroke="#faf8f3" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M12 13c0-3.3 2.4-5.6 6-6 .4 3.6-1.9 6-6 6z" fill="#faf8f3"/>
+    <path d="M12 16c0-2.6-1.9-4.4-4.7-4.7C7 14.1 8.9 16 12 16z" fill="#faf8f3"/>
+  </g>
 </svg>

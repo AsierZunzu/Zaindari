@@ -118,6 +118,39 @@ The user's locale lives on `User.locale`, read from `GET /api/me` and written by
 
 Sentences are translated whole, never assembled from fragments: Basque puts the object before the verb and Spanish doesn't inflect verbs by number the way English does, so `"task" + (n === 1 ? '' : 's')` cannot be translated at all.
 
+### The design system lives in one CSS file
+
+`client/src/style.css` is the whole thing: a Tailwind v4 `@theme` block plus a dozen
+`@utility` recipes. Two consequences shape how client work should be done.
+
+**Colour is re-pointed, not renamed.** Tailwind's own `gray`, `green`, `red`, `yellow`
+and `blue` scales are redefined there as warm stone, moss, clay, honey and a muted lake,
+alongside semantic aliases (`ground`, `surface`, `surface-sunk`, `ink`, `ink-muted`,
+`ink-faint`, `line`, `line-strong`) and four status tones (`overdue`, `due`, `done`,
+`idle`, each with a `-soft` fill and an AA-contrast `-ink`). Reach for the semantic name
+in new code. `blue-*` is a guard rather than a palette: nothing uses it, and it is
+defined only so a stray utility cannot reintroduce stock blue.
+
+**Recipes before utility strings.** `card`, `card-inset`, `btn` + `btn-primary` /
+`btn-quiet` / `btn-danger`, `field-label`, `field-input`, `badge` and `section-label`
+exist because the same five strings were being retyped across every view. Separation is
+carried by `line` hairlines and ground shifts — `shadow-lift` is the only shadow with
+real presence and belongs to things that genuinely float (menus, the mobile bar).
+
+Icons are hand-drawn path data in `client/src/components/icons.ts`, rendered by
+`AppIcon`; there are no emoji and no icon library, and `taskTypeIcon()` in `utils/date.ts`
+maps a `TaskType` to one the same way the other helpers return keys. Two scripts back
+this up, both run by hand:
+
+```bash
+cd client
+node scripts/generate-icons.mjs     # redraws every asset in public/ from one glyph
+node scripts/audit-contrast.mjs     # scores every bg/text pair used in any .vue
+```
+
+The icon PNGs are generated, never edited. `UI_OVERHAUL.md` records the design decisions
+and the reasoning behind them.
+
 ### Service worker (hand-written)
 `vite-plugin-pwa` runs in `injectManifest` mode against `client/src/sw.ts`, so nothing is generated for you — `skipWaiting()`/`clientsClaim()` and the navigation fallback are explicit, and omitting them leaves stale shells serving old builds. Two rules matter: `/api/auth/*` and `/api/me` are `NetworkOnly` (a cached identity would resurrect the previous user), and other `/api/` responses are `NetworkFirst` keyed per account by folding the JWT `sub` into the cache key (`sw-cache-key.ts`) because Workbox otherwise keys by URL alone. The `/api/me` test is an exact path match, so sub-paths like `/api/me/notification-times` deliberately fall into the `NetworkFirst` bucket — safe because of the per-account key, but check that reasoning still holds before adding an identity-shaped route under `/api/me`. Logout posts `CLEAR_API_CACHE`.
 

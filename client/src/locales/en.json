@@ -5,6 +5,7 @@
   "common": {
     "add": "Add",
     "cancel": "Cancel",
+    "close": "Close",
     "confirm": "Confirm",
     "create": "Create",
     "delete": "Delete",
@@ -22,21 +23,21 @@
     "eu": "Euskara"
   },
   "nav": {
-    "tasks": "Tasks",
-    "inventory": "Inventory",
-    "addPlant": "+ Add Plant",
+    "care": "Care",
+    "garden": "Garden",
+    "addPlant": "Add plant",
     "settings": "Settings",
     "adminPanel": "Admin Panel",
     "logout": "Logout",
-    "toggleMenu": "Toggle navigation menu",
-    "accountMenu": "Account menu"
+    "accountMenu": "Account menu",
+    "account": "Account"
   },
   "routes": {
     "login": "Sign In",
     "register": "Sign Up",
     "authCallback": "Signing In",
-    "tasks": "Tasks",
-    "inventory": "Inventory",
+    "care": "Care",
+    "garden": "Garden",
     "plantNew": "New Plant",
     "plantDetail": "Plant",
     "plantEdit": "Edit Plant",
@@ -81,7 +82,7 @@
     "backToLogin": "Back to Login"
   },
   "tasks": {
-    "title": "Tasks",
+    "title": "Care",
     "outstanding": "{count} task needs your attention, {name}. | {count} tasks need your attention, {name}.",
     "allClear": "Nothing due right now — nice work, {name}.",
     "agenda": "Agenda",
@@ -129,17 +130,17 @@
     "overdueByDays": "Overdue by {count} day | Overdue by {count} days"
   },
   "plants": {
-    "inventory": "Inventory",
-    "inventorySubtitle": "Every plant {name} owns or has been shared.",
+    "garden": "Garden",
+    "gardenSubtitle": "Every plant {name} owns or has been shared.",
     "noneYet": "No plants yet",
     "getStarted": "Get started by adding your first plant!",
-    "addFirst": "+ Add Your First Plant",
-    "backToInventory": "Back to inventory",
+    "addFirst": "Add your first plant",
+    "backToGarden": "Back to garden",
     "share": "Share",
     "careInstructions": "Care Instructions",
     "tasks": "Tasks",
     "schedules": "Schedules",
-    "imageHistory": "Image History",
+    "imageHistory": "Photos",
     "photoAlt": "{name} photo",
     "deleteTitle": "Delete Plant",
     "deleteConfirm": "Are you sure you want to delete {name}? This action cannot be undone.",

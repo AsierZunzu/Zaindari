@@ -5,6 +5,7 @@
   "common": {
     "add": "Añadir",
     "cancel": "Cancelar",
+    "close": "Cerrar",
     "confirm": "Confirmar",
     "create": "Crear",
     "delete": "Eliminar",
@@ -22,21 +23,21 @@
     "eu": "Euskara"
   },
   "nav": {
-    "tasks": "Tareas",
-    "inventory": "Inventario",
-    "addPlant": "+ Añadir planta",
+    "care": "Cuidados",
+    "garden": "Jardín",
+    "addPlant": "Añadir planta",
     "settings": "Ajustes",
     "adminPanel": "Panel de administración",
     "logout": "Cerrar sesión",
-    "toggleMenu": "Abrir o cerrar el menú de navegación",
-    "accountMenu": "Menú de la cuenta"
+    "accountMenu": "Menú de la cuenta",
+    "account": "Cuenta"
   },
   "routes": {
     "login": "Iniciar sesión",
     "register": "Crear cuenta",
     "authCallback": "Iniciando sesión",
-    "tasks": "Tareas",
-    "inventory": "Inventario",
+    "care": "Cuidados",
+    "garden": "Jardín",
     "plantNew": "Nueva planta",
     "plantDetail": "Planta",
     "plantEdit": "Editar planta",
@@ -81,7 +82,7 @@
     "backToLogin": "Volver al inicio de sesión"
   },
   "tasks": {
-    "title": "Tareas",
+    "title": "Cuidados",
     "outstanding": "{count} tarea necesita tu atención, {name}. | {count} tareas necesitan tu atención, {name}.",
     "allClear": "Nada pendiente ahora mismo: buen trabajo, {name}.",
     "agenda": "Agenda",
@@ -129,17 +130,17 @@
     "overdueByDays": "Atrasada {count} día | Atrasada {count} días"
   },
   "plants": {
-    "inventory": "Inventario",
-    "inventorySubtitle": "Todas las plantas de {name} y las compartidas contigo.",
+    "garden": "Jardín",
+    "gardenSubtitle": "Todas las plantas de {name} y las compartidas contigo.",
     "noneYet": "Todavía no hay plantas",
     "getStarted": "Empieza añadiendo tu primera planta.",
-    "addFirst": "+ Añade tu primera planta",
-    "backToInventory": "Volver al inventario",
+    "addFirst": "Añade tu primera planta",
+    "backToGarden": "Volver al jardín",
     "share": "Compartir",
     "careInstructions": "Instrucciones de cuidado",
     "tasks": "Tareas",
     "schedules": "Horarios",
-    "imageHistory": "Historial de fotos",
+    "imageHistory": "Fotos",
     "photoAlt": "Foto de {name}",
     "deleteTitle": "Eliminar planta",
     "deleteConfirm": "¿Seguro que quieres eliminar {name}? Esta acción no se puede deshacer.",

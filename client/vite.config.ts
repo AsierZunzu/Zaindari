@@ -16,8 +16,10 @@ export default defineConfig({
         name: 'Zaindari',
         short_name: 'Zaindari',
         description: 'Plant care scheduler',
-        theme_color: '#15803d',
-        background_color: '#f0fdf4',
+        // Moss and paper: the browser paints the address bar and the splash screen
+        // with these, so a stale pair shows the old palette before the app loads.
+        theme_color: '#4a6741',
+        background_color: '#faf8f3',
         display: 'standalone',
         scope: '/',
         start_url: '/',
@@ -48,7 +50,10 @@ export default defineConfig({
         ],
       },
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
+        // `woff2` matters as much as the rest: the app self-hosts its two
+        // typefaces, and without it the installed PWA falls back to Georgia
+        // and system-ui the first time it is opened offline.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
       },
       devOptions: {
         enabled: true,

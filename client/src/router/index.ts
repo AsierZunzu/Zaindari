@@ -34,13 +34,20 @@ const router = createRouter({
       path: '/',
       name: 'tasks',
       component: () => import('../views/TasksView.vue'),
-      meta: { auth: true, titleKey: 'routes.tasks' },
+      meta: { auth: true, titleKey: 'routes.care' },
     },
     {
+      path: '/garden',
+      name: 'garden',
+      component: () => import('../views/GardenView.vue'),
+      meta: { auth: true, titleKey: 'routes.garden' },
+    },
+    {
+      // The screen was called "Inventory" until the redesign. Anyone who
+      // bookmarked it — or installed the PWA while it was the start URL —
+      // still has the old path.
       path: '/inventory',
-      name: 'inventory',
-      component: () => import('../views/InventoryView.vue'),
-      meta: { auth: true, titleKey: 'routes.inventory' },
+      redirect: '/garden',
     },
     {
       path: '/plants/new',

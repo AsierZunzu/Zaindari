@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import AppIcon from './AppIcon.vue'
+import LoadingPlaceholder from './LoadingPlaceholder.vue'
 import { ref, computed, onMounted } from 'vue'
 import { schedulesApi } from '../api/schedules'
 import type { MergedSchedule } from '../api/schedules'
 import type { TaskType } from '../types'
-import { taskTypeEmoji } from '../utils/date'
+import { taskTypeIcon } from '../utils/date'
 import { useTaskLabels } from '../composables/useTaskLabels'
 import { useApiError } from '../composables/useApiError'
 
@@ -160,12 +162,10 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
 <template>
   <div>
     <!-- Loading -->
-    <div v-if="loading" class="flex justify-center py-4">
-      <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
-    </div>
+    <LoadingPlaceholder v-if="loading" :count="4" />
 
     <!-- Error -->
-    <div v-if="error" class="mb-3 rounded-md bg-red-50 p-3 text-xs text-red-700">
+    <div v-if="error" class="mb-3 rounded-md bg-overdue-soft px-3 py-2.5 text-xs text-overdue-ink">
       {{ error }}
     </div>
 
@@ -174,21 +174,21 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
       <div
         v-for="taskType in allTaskTypes"
         :key="taskType"
-        class="rounded-lg bg-white p-3 shadow-sm ring-1 ring-gray-100"
+        class="card p-3"
       >
         <div class="flex flex-wrap items-center gap-3">
           <!-- Icon + Label -->
           <div class="flex items-center gap-2">
-            <span class="text-lg">{{ taskTypeEmoji(taskType) }}</span>
-            <span class="text-sm font-medium text-gray-900">{{ taskTypeLabel(taskType) }}</span>
+            <AppIcon :name="taskTypeIcon(taskType)" :size="18" class="text-ink-muted" />
+            <span class="text-sm font-semibold text-ink">{{ taskTypeLabel(taskType) }}</span>
           </div>
 
           <template v-if="getDraft(taskType)">
             <!-- A queued reset freezes the row: its values are the server's to decide -->
             <template v-if="getDraft(taskType)!.pendingReset">
-              <span class="text-xs text-gray-500 italic">{{ $t('schedules.resetPending') }}</span>
+              <span class="text-xs text-ink-faint italic">{{ $t('schedules.resetPending') }}</span>
               <button
-                class="rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                class="rounded-sm border border-line bg-surface px-2 py-1 text-xs font-semibold text-ink-muted transition-colors hover:bg-surface-sunk disabled:opacity-50"
                 :disabled="saving"
                 @click="undoReset(getDraft(taskType)!)"
               >
@@ -198,12 +198,12 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
 
             <template v-else>
               <!-- On/off. Off means: create nothing new, drop what was queued. -->
-              <label class="flex items-center gap-1.5 text-xs text-gray-600">
+              <label class="flex items-center gap-1.5 text-xs text-ink-muted">
                 <input
                   type="checkbox"
                   :checked="getDraft(taskType)!.enabled"
                   :disabled="saving"
-                  class="rounded border-gray-300 text-primary-600 focus:ring-primary-400 disabled:opacity-50"
+                  class="rounded-sm border-line-strong text-primary-700 focus:ring-primary-400 disabled:opacity-50"
                   @change="(e: Event) => (getDraft(taskType)!.enabled = (e.target as HTMLInputElement).checked)"
                 />
                 {{ getDraft(taskType)!.enabled ? $t('schedules.enabled') : $t('schedules.disabled') }}
@@ -212,31 +212,31 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
               <template v-if="getDraft(taskType)!.enabled">
                 <!-- Interval -->
                 <div class="flex items-center gap-1">
-                  <span class="text-xs text-gray-500">{{ $t('schedules.every') }}</span>
+                  <span class="text-xs text-ink-faint">{{ $t('schedules.every') }}</span>
                   <input
                     type="number"
                     :value="getDraft(taskType)!.intervalDays"
                     min="1"
                     max="365"
                     :disabled="saving"
-                    class="w-16 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400 disabled:opacity-50"
+                    class="field-input w-16 px-2 py-1 text-xs tabular-nums disabled:opacity-50"
                     @change="(e: Event) => {
                       const draft = getDraft(taskType)!
                       draft.intervalDays = parseInt((e.target as HTMLInputElement).value) || draft.intervalDays
                     }"
                   />
-                  <span class="text-xs text-gray-500">{{ $t('schedules.days') }}</span>
+                  <span class="text-xs text-ink-faint">{{ $t('schedules.days') }}</span>
                 </div>
 
                 <!-- Reminder time: each collaborator's own, or pinned for all -->
                 <div class="flex items-center gap-2">
-                  <span class="text-xs text-gray-500">{{ $t('schedules.at') }}</span>
-                  <label class="flex items-center gap-1 text-xs text-gray-600">
+                  <span class="text-xs text-ink-faint">{{ $t('schedules.at') }}</span>
+                  <label class="flex items-center gap-1 text-xs text-ink-muted">
                     <input
                       type="checkbox"
                       :checked="!getDraft(taskType)!.usesOwnTime"
                       :disabled="saving"
-                      class="rounded border-gray-300 text-primary-600 focus:ring-primary-400 disabled:opacity-50"
+                      class="rounded-sm border-line-strong text-primary-700 focus:ring-primary-400 disabled:opacity-50"
                       @change="(e: Event) => (getDraft(taskType)!.usesOwnTime = !(e.target as HTMLInputElement).checked)"
                     />
                     {{ $t('schedules.eachOwnTime') }}
@@ -246,7 +246,7 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
                     type="time"
                     :value="formatTime(getDraft(taskType)!.hour, getDraft(taskType)!.minute)"
                     :disabled="saving"
-                    class="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400 disabled:opacity-50"
+                    class="field-input w-auto px-2 py-1 text-xs tabular-nums disabled:opacity-50"
                     @change="(e: Event) => {
                       const draft = getDraft(taskType)!
                       const parsed = parseTime((e.target as HTMLInputElement).value)
@@ -259,7 +259,7 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
                 <!-- Override indicator -->
                 <span
                   v-if="getDraft(taskType)!.isOverride"
-                  class="rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700"
+                  class="badge bg-primary-100 text-primary-800"
                 >
                   {{ $t('schedules.custom') }}
                 </span>
@@ -267,7 +267,7 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
                 <!-- Reset: queued like every other edit, applied on save -->
                 <button
                   v-if="getDraft(taskType)!.isOverride"
-                  class="rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                  class="rounded-sm border border-line bg-surface px-2 py-1 text-xs font-semibold text-ink-muted transition-colors hover:bg-surface-sunk disabled:opacity-50"
                   :disabled="saving"
                   @click="markReset(getDraft(taskType)!)"
                 >
@@ -275,31 +275,31 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
                 </button>
               </template>
 
-              <span v-else class="text-xs text-gray-400 italic">
+              <span v-else class="text-xs text-ink-faint italic">
                 {{ $t('schedules.disabledHint') }}
               </span>
             </template>
           </template>
 
-          <span v-else class="text-xs text-gray-400 italic">{{ $t('schedules.none') }}</span>
+          <span v-else class="text-xs text-ink-faint italic">{{ $t('schedules.none') }}</span>
         </div>
       </div>
 
       <!-- One save for the whole section -->
       <div class="flex items-center justify-end gap-2 pt-1">
-        <span v-if="hasChanges" class="mr-auto text-xs text-gray-500 italic">
+        <span v-if="hasChanges" class="mr-auto text-xs text-ink-faint italic">
           {{ $t('schedules.unsavedChanges') }}
         </span>
         <button
           v-if="hasChanges"
-          class="rounded-md bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+          class="rounded-sm border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:bg-surface-sunk disabled:opacity-50"
           :disabled="saving"
           @click="discardChanges"
         >
           {{ $t('common.cancel') }}
         </button>
         <button
-          class="rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+          class="btn btn-primary"
           :disabled="saving || !hasChanges"
           @click="saveAll"
         >

@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { tasksApi } from '../api/tasks'
 import type { Task } from '../types'
+import AppIcon from './AppIcon.vue'
 
 const { t } = useI18n()
 
@@ -85,50 +86,52 @@ async function snoozeTask(opt: SnoozeOption) {
 
 <template>
   <div class="flex flex-wrap items-center gap-1.5">
-    <!-- Complete button (for pending/snoozed) -->
+    <!--
+      Icon-only, because the row is dense and these three verbs are drawn
+      unambiguously. Each button borrows its own status tone on hover rather
+      than owning a permanent fill — at rest the row stays paper, and colour
+      appears only where the pointer is.
+    -->
     <button
       v-if="task.status === 'pending' || task.status === 'snoozed'"
-      class="inline-flex items-center justify-center rounded-md bg-green-50 p-1.5 text-green-600 transition-colors hover:bg-green-100 disabled:opacity-50"
+      class="inline-flex items-center justify-center rounded-md border border-line bg-surface p-1.5 text-done transition-colors hover:bg-done-soft disabled:opacity-50"
       :title="$t('tasks.complete')"
+      :aria-label="$t('tasks.complete')"
       :disabled="acting"
       @click="completeTask"
     >
-      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-      </svg>
+      <AppIcon name="check" :size="16" />
     </button>
 
-    <!-- Snooze button (for pending/snoozed) -->
     <button
       v-if="task.status === 'pending' || task.status === 'snoozed'"
-      class="inline-flex items-center justify-center rounded-md bg-yellow-50 p-1.5 text-yellow-600 transition-colors hover:bg-yellow-100"
+      class="inline-flex items-center justify-center rounded-md border border-line bg-surface p-1.5 text-due-ink transition-colors hover:bg-due-soft"
       :title="$t('tasks.snooze')"
+      :aria-label="$t('tasks.snooze')"
+      :aria-expanded="showSnooze"
       @click="showSnooze = !showSnooze"
     >
-      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
+      <AppIcon name="clock" :size="16" />
     </button>
 
-    <!-- Undo button (for done) -->
+    <!-- Undo is neither good news nor bad, so it stays ink: the palette keeps
+         one accent, and a blue button here was the app's only stray. -->
     <button
       v-if="task.status === 'done'"
-      class="inline-flex items-center justify-center rounded-md bg-blue-50 p-1.5 text-blue-600 transition-colors hover:bg-blue-100 disabled:opacity-50"
+      class="inline-flex items-center justify-center rounded-md border border-line bg-surface p-1.5 text-ink-muted transition-colors hover:bg-surface-sunk disabled:opacity-50"
       :title="$t('tasks.undo')"
+      :aria-label="$t('tasks.undo')"
       :disabled="acting"
       @click="undoTask"
     >
-      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
-      </svg>
+      <AppIcon name="undo" :size="16" />
     </button>
 
-    <!-- Snooze picker -->
-    <div v-if="showSnooze" class="flex w-full items-center gap-1 pt-1">
+    <div v-if="showSnooze" class="flex w-full flex-wrap items-center gap-1 pt-1">
       <button
         v-for="opt in snoozeOptions"
         :key="opt.key"
-        class="rounded-md border border-yellow-200 bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700 transition-colors hover:bg-yellow-100 disabled:opacity-50"
+        class="rounded-sm border border-line bg-due-soft px-2 py-1 text-xs font-semibold text-due-ink transition-colors hover:border-due disabled:opacity-50"
         :disabled="acting"
         @click="snoozeTask(opt)"
       >

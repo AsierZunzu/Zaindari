@@ -8,9 +8,11 @@ import { useAuthStore } from '../stores/auth'
 import { SUPPORTED_LOCALES, type Locale } from '../i18n'
 import { refreshDocumentTitle } from '../router'
 import { schedulesApi, type UserNotificationTimes } from '../api/schedules'
+import AppIcon from '../components/AppIcon.vue'
+import SettingsSection from '../components/SettingsSection.vue'
 import DataTransfer from '../components/DataTransfer.vue'
 import type { TaskType } from '../types'
-import { taskTypeEmoji } from '../utils/date'
+import { taskTypeIcon } from '../utils/date'
 import { useTaskLabels } from '../composables/useTaskLabels'
 
 const { isSupported, permission, isSubscribed, subscribe, unsubscribe } =
@@ -154,31 +156,25 @@ async function installApp() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg px-4 py-6">
-    <h1 class="mb-6 text-2xl font-bold text-gray-900">{{ $t('settings.title') }}</h1>
+  <!-- `main` already supplies the page gutter; this only narrows the column.
+       Settings is a read-and-adjust page, so it stays a single column: five
+       sections do not earn a navigation of their own. -->
+  <div class="mx-auto flex max-w-2xl flex-col gap-4">
+    <h1 class="font-display text-3xl font-semibold text-ink">{{ $t('settings.title') }}</h1>
 
-    <section class="mb-4 rounded-lg border border-gray-200 bg-white p-5">
-      <h2 class="mb-1 text-lg font-semibold text-gray-800">
-        {{ $t('settings.install.title') }}
-      </h2>
-
-      <div
-        v-if="isInstalled"
-        class="mt-3 rounded-md bg-green-50 p-3 text-sm text-green-700"
-      >
+    <SettingsSection :title="$t('settings.install.title')">
+      <p v-if="isInstalled" class="badge bg-done-soft text-done-ink">
         {{ $t('settings.install.installed') }}
-      </div>
+      </p>
 
       <template v-else>
         <div class="flex items-center justify-between gap-4">
-          <p class="text-xs text-gray-500">
-            {{ $t('settings.install.hint') }}
-          </p>
+          <p class="text-sm text-ink-faint">{{ $t('settings.install.hint') }}</p>
           <button
             v-if="canInstall"
             type="button"
             :disabled="installing"
-            class="shrink-0 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:cursor-not-allowed disabled:opacity-50"
+            class="btn btn-primary shrink-0"
             @click="installApp"
           >
             {{ $t('settings.install.action') }}
@@ -188,26 +184,15 @@ async function installApp() {
         <!-- Firefox and Safari never fire beforeinstallprompt, and Brave can
              go quiet too, so the button simply will not appear for some
              people. Say where to look rather than showing nothing. -->
-        <p
-          v-if="!canInstall"
-          class="mt-3 rounded-md bg-gray-50 p-3 text-sm text-gray-600"
-        >
+        <p v-if="!canInstall" class="card-inset p-3 text-sm text-ink-muted">
           {{ $t('settings.install.unavailable') }}
         </p>
       </template>
-    </section>
+    </SettingsSection>
 
-    <section class="mb-4 rounded-lg border border-gray-200 bg-white p-5">
-      <h2 class="mb-4 text-lg font-semibold text-gray-800">
-        {{ $t('settings.language') }}
-      </h2>
-
+    <SettingsSection :title="$t('settings.language')" :hint="$t('settings.languageHint')">
       <label for="locale" class="sr-only">{{ $t('settings.language') }}</label>
-      <select
-        id="locale"
-        v-model="selectedLocale"
-        class="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-      >
+      <select id="locale" v-model="selectedLocale" class="field-input">
         <!-- Endonyms: a language is listed in its own language, so someone
              stranded in a language they cannot read can still find theirs. -->
         <option v-for="code in SUPPORTED_LOCALES" :key="code" :value="code">
@@ -215,32 +200,27 @@ async function installApp() {
         </option>
       </select>
 
-      <p class="mt-2 text-xs text-gray-500">{{ $t('settings.languageHint') }}</p>
-
-      <div
+      <p
         v-if="localeError"
-        class="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700"
+        class="flex items-center gap-2 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink"
       >
+        <AppIcon name="alert" :size="16" class="shrink-0" />
         {{ localeError }}
-      </div>
-    </section>
+      </p>
+    </SettingsSection>
 
-    <section class="rounded-lg border border-gray-200 bg-white p-5">
-      <h2 class="mb-4 text-lg font-semibold text-gray-800">
-        {{ $t('settings.pushNotifications') }}
-      </h2>
-
-      <div v-if="!isSupported" class="text-sm text-gray-500">
+    <SettingsSection :title="$t('settings.pushNotifications')">
+      <p v-if="!isSupported" class="text-sm text-ink-faint">
         {{ $t('settings.pushNotSupported') }}
-      </div>
+      </p>
 
-      <div v-else>
-        <div class="flex items-center justify-between">
+      <template v-else>
+        <div class="flex items-center justify-between gap-4">
           <div>
-            <p class="text-sm font-medium text-gray-700">
+            <p class="text-sm font-semibold text-ink">
               {{ $t('settings.enableNotifications') }}
             </p>
-            <p class="mt-0.5 text-xs text-gray-500">
+            <p class="mt-0.5 text-sm text-ink-faint">
               {{ $t('settings.enableNotificationsHint') }}
             </p>
           </div>
@@ -250,59 +230,54 @@ async function installApp() {
             :aria-checked="isSubscribed"
             :aria-label="$t('settings.enableNotifications')"
             :disabled="subscribing"
-            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            :class="isSubscribed ? 'bg-green-600' : 'bg-gray-200'"
+            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
+            :class="isSubscribed ? 'bg-primary-700' : 'bg-line-strong'"
             @click="toggleNotifications"
           >
             <span
-              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface shadow-sm ring-0 transition duration-200 ease-in-out"
               :class="isSubscribed ? 'translate-x-5' : 'translate-x-0'"
             />
           </button>
         </div>
 
-        <div
+        <p
           v-if="errorMessage"
-          class="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700"
+          class="flex items-center gap-2 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink"
         >
+          <AppIcon name="alert" :size="16" class="shrink-0" />
           {{ errorMessage }}
-        </div>
+        </p>
 
-        <div
+        <p
           v-else-if="permission === 'denied'"
-          class="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700"
+          class="flex items-center gap-2 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink"
         >
+          <AppIcon name="alert" :size="16" class="shrink-0" />
           {{ $t('settings.notificationsBlocked') }}
-        </div>
+        </p>
 
-        <div
-          v-else-if="isSubscribed"
-          class="mt-3 rounded-md bg-green-50 p-3 text-sm text-green-700"
-        >
+        <p v-else-if="isSubscribed" class="badge bg-done-soft text-done-ink">
           {{ $t('settings.notificationsEnabled') }}
-        </div>
-      </div>
-    </section>
+        </p>
+      </template>
+    </SettingsSection>
 
-    <section class="mt-4 rounded-lg border border-gray-200 bg-white p-5">
-      <h2 class="mb-1 text-lg font-semibold text-gray-800">
-        {{ $t('settings.notificationTime') }}
-      </h2>
-      <p class="mb-4 text-xs text-gray-500">
-        {{ $t('settings.notificationTimeHint') }}
+    <SettingsSection
+      :title="$t('settings.notificationTime')"
+      :hint="$t('settings.notificationTimeHint')"
+    >
+      <p
+        v-if="timesError"
+        class="flex items-center gap-2 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink"
+      >
+        <AppIcon name="alert" :size="16" class="shrink-0" />
+        {{ timesError }}
       </p>
 
-      <div
-        v-if="timesError"
-        class="mb-3 rounded-md bg-red-50 p-3 text-sm text-red-700"
-      >
-        {{ timesError }}
-      </div>
-
-      <div v-if="times">
-        <!-- Base time -->
+      <div v-if="times" class="flex flex-col gap-4">
         <div class="flex items-center justify-between gap-3">
-          <label for="base-time" class="text-sm font-medium text-gray-700">
+          <label for="base-time" class="text-sm font-semibold text-ink">
             {{ $t('settings.notificationTimeBase') }}
           </label>
           <input
@@ -310,35 +285,36 @@ async function installApp() {
             type="time"
             :value="formatTime(times.base)"
             :disabled="savingTime === 'base'"
-            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50"
+            class="field-input w-auto tabular-nums disabled:opacity-50"
             @change="(e: Event) => saveBaseTime((e.target as HTMLInputElement).value)"
           />
         </div>
 
-        <!-- Per task type -->
-        <div class="mt-4 space-y-3 border-t border-gray-100 pt-4">
+        <!-- Per task type. Each row is one plain sentence: this job, at the
+             base time or at its own. -->
+        <div class="flex flex-col gap-3 border-t border-line pt-4">
           <div
             v-for="taskType in allTaskTypes"
             :key="taskType"
             class="flex flex-wrap items-center gap-3"
           >
-            <div class="flex w-32 items-center gap-2">
-              <span class="text-base">{{ taskTypeEmoji(taskType) }}</span>
-              <span class="text-sm text-gray-700">{{ taskTypeLabel(taskType) }}</span>
+            <div class="flex w-32 items-center gap-2 text-ink">
+              <AppIcon :name="taskTypeIcon(taskType)" :size="18" class="text-ink-muted" />
+              <span class="truncate text-sm">{{ taskTypeLabel(taskType) }}</span>
             </div>
 
-            <label class="flex items-center gap-1.5 text-xs text-gray-600">
+            <label class="flex items-center gap-1.5 text-sm text-ink-muted">
               <input
                 type="checkbox"
                 :checked="!times.overrides[taskType]"
                 :disabled="savingTime === taskType"
-                class="rounded border-gray-300 text-primary-600 focus:ring-primary-400"
+                class="rounded-sm border-line-strong text-primary-700 focus:ring-primary-400"
                 @change="(e: Event) => toggleTaskOverride(taskType, !(e.target as HTMLInputElement).checked)"
               />
               {{ $t('settings.notificationTimeUseBase') }}
             </label>
 
-            <span v-if="!times.overrides[taskType]" class="text-xs text-gray-400">
+            <span v-if="!times.overrides[taskType]" class="text-sm tabular-nums text-ink-faint">
               {{ formatTime(times.base) }}
             </span>
             <input
@@ -346,7 +322,7 @@ async function installApp() {
               type="time"
               :value="formatTime(times.overrides[taskType]!)"
               :disabled="savingTime === taskType"
-              class="rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50"
+              class="field-input w-auto tabular-nums disabled:opacity-50"
               @change="(e: Event) => {
                 const parsed = parseTime((e.target as HTMLInputElement).value)
                 if (parsed) saveTaskTime(taskType, parsed)
@@ -355,11 +331,9 @@ async function installApp() {
           </div>
         </div>
 
-        <p class="mt-4 text-xs text-gray-400">
-          {{ $t('settings.notificationTimePlantNote') }}
-        </p>
+        <p class="text-sm text-ink-faint">{{ $t('settings.notificationTimePlantNote') }}</p>
       </div>
-    </section>
+    </SettingsSection>
 
     <DataTransfer />
   </div>

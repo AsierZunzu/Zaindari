@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Task, TaskType, TaskWithPlant } from '../types'
-import { taskTypeEmoji } from '../utils/date'
+import { taskTypeIcon } from '../utils/date'
 import {
   buildMonthGrid,
   dayKey,
@@ -14,6 +14,8 @@ import {
   type DayMarker,
 } from '../utils/agenda'
 import { useTaskLabels } from '../composables/useTaskLabels'
+import AppIcon from './AppIcon.vue'
+import EmptyState from './EmptyState.vue'
 import TaskRow from './TaskRow.vue'
 
 const props = defineProps<{
@@ -157,11 +159,13 @@ function hasOverdue(cell: CalendarCell): boolean {
 
 function cellClass(cell: CalendarCell): string {
   const classes: string[] = []
-  if (!cell.inMonth) classes.push('text-gray-300')
-  else classes.push('text-gray-700')
+  // Days spilling in from the neighbouring month are still readable, just
+  // clearly not part of what is being looked at.
+  if (!cell.inMonth) classes.push('text-line-strong')
+  else classes.push('text-ink-muted')
   if (cell.key === selectedKey.value) classes.push('ring-2 ring-primary-500')
   else if (cell.isToday) classes.push('ring-1 ring-primary-300')
-  if (hasOverdue(cell)) classes.push('bg-red-50')
+  if (hasOverdue(cell)) classes.push('bg-overdue-soft')
   else if (cell.isToday) classes.push('bg-primary-50')
   return classes.join(' ')
 }
@@ -172,65 +176,71 @@ function cellClass(cell: CalendarCell): string {
     <!-- Month navigation -->
     <div class="flex items-center justify-between">
       <button
-        class="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100"
+        class="rounded-md p-2 text-ink-muted transition-colors hover:bg-surface-sunk"
         :aria-label="$t('tasks.previousMonth')"
         @click="shiftMonth(-1)"
       >
-        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
+        <AppIcon name="chevron-left" :size="20" />
       </button>
       <div class="flex items-center gap-2">
-        <h2 class="text-sm font-semibold text-gray-900">{{ monthHeading(month) }}</h2>
+        <h2 class="font-display text-base font-semibold text-ink">{{ monthHeading(month) }}</h2>
         <button
-          class="rounded-md px-2 py-1 text-xs font-medium text-primary-700 transition-colors hover:bg-primary-50"
+          class="rounded-sm px-2 py-1 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-50"
           @click="goToToday"
         >
           {{ $t('common.today') }}
         </button>
       </div>
       <button
-        class="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100"
+        class="rounded-md p-2 text-ink-muted transition-colors hover:bg-surface-sunk"
         :aria-label="$t('tasks.nextMonth')"
         @click="shiftMonth(1)"
       >
-        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
+        <AppIcon name="chevron-right" :size="20" />
       </button>
     </div>
 
     <!-- Month grid. No `overflow-hidden`: it would clip the marker popover. -->
-    <div class="mt-3 rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-100">
+    <div class="card mt-3 p-2">
       <div ref="gridRef" class="grid grid-cols-7 gap-1">
         <div
           v-for="weekday in weekdays"
           :key="weekday"
-          class="pb-1 text-center text-xs font-semibold text-gray-400"
+          class="pb-1 text-center text-xs font-semibold text-ink-faint"
         >
           {{ weekday.charAt(0) }}<span class="hidden sm:inline">{{ weekday.slice(1) }}</span>
         </div>
 
         <div v-for="(cell, index) in cells" :key="cell.key" class="relative">
           <button
-            class="flex aspect-square w-full flex-col items-center justify-start rounded-lg p-1 transition-colors hover:bg-gray-100"
+            class="flex aspect-square w-full flex-col items-center justify-start rounded-md p-1 transition-colors hover:bg-surface-sunk"
             :class="cellClass(cell)"
             :aria-expanded="dayMarkers(cell).length > 0 ? openKey === cell.key : undefined"
             @pointerdown="rememberPointer"
             @click="selectDay(cell, $event)"
           >
-            <span class="text-xs font-medium" :class="cell.isToday ? 'font-bold text-primary-700' : ''">
+            <span
+              class="text-xs font-medium tabular-nums"
+              :class="cell.isToday ? 'font-bold text-primary-700' : ''"
+            >
               {{ cell.date.getDate() }}
             </span>
-            <span class="mt-0.5 flex flex-wrap justify-center gap-px overflow-hidden text-[9px] leading-none sm:text-xs">
+            <!-- Line icons rather than emoji: at 12px an emoji is a coloured
+                 smudge that renders differently on every platform, while a
+                 stroked glyph stays a glyph. -->
+            <span
+              class="mt-0.5 flex flex-wrap justify-center gap-0.5 overflow-hidden"
+              :class="hasOverdue(cell) ? 'text-overdue' : 'text-ink-faint'"
+            >
               <span
                 v-for="marker in dayMarkers(cell)"
                 :key="marker.taskType"
                 class="cursor-help"
                 @mouseenter="hovered = { key: cell.key, taskType: marker.taskType }"
                 @mouseleave="hovered = null"
-                >{{ taskTypeEmoji(marker.taskType) }}</span
               >
+                <AppIcon :name="taskTypeIcon(marker.taskType)" :size="12" />
+              </span>
             </span>
           </button>
 
@@ -242,19 +252,20 @@ function cellClass(cell: CalendarCell): string {
           <div
             v-if="tooltipMarkers(cell).length > 0"
             role="tooltip"
-            class="pointer-events-none absolute top-full z-20 mt-1.5 w-max max-w-[12rem] rounded-lg bg-white px-2.5 py-1.5 text-left shadow-lg ring-1 ring-black/5"
+            class="pointer-events-none absolute top-full z-20 mt-1.5 w-max max-w-[12rem] rounded-md border border-line bg-surface px-2.5 py-1.5 text-left shadow-lift"
             :class="popoverAlign(index)"
           >
             <span
-              class="absolute -top-1 h-2 w-2 rotate-45 border-l border-t border-black/5 bg-white"
+              class="absolute -top-1 h-2 w-2 rotate-45 border-l border-t border-line bg-surface"
               :class="arrowAlign(index)"
             />
-            <div class="relative space-y-1">
+            <div class="relative flex flex-col gap-1">
               <div v-for="marker in tooltipMarkers(cell)" :key="marker.taskType">
-                <p class="text-[11px] font-semibold leading-tight text-gray-900">
-                  {{ taskTypeEmoji(marker.taskType) }} {{ taskType(marker.taskType) }}
+                <p class="flex items-center gap-1 text-[11px] font-semibold leading-tight text-ink">
+                  <AppIcon :name="taskTypeIcon(marker.taskType)" :size="12" class="text-ink-muted" />
+                  {{ taskType(marker.taskType) }}
                 </p>
-                <p class="text-[11px] leading-tight text-gray-500">{{ markerPlants(marker) }}</p>
+                <p class="text-[11px] leading-tight text-ink-faint">{{ markerPlants(marker) }}</p>
               </div>
             </div>
           </div>
@@ -263,21 +274,15 @@ function cellClass(cell: CalendarCell): string {
     </div>
 
     <!-- Selected day -->
-    <div v-if="selectedCell" class="mt-4">
-      <h3 class="mb-2 text-xs font-semibold text-gray-500">
-        {{ dayHeading(dayLabel(selectedCell.date)) }}
-      </h3>
-      <div v-if="selectedCell.tasks.length > 0" class="space-y-2">
-        <TaskRow
-          v-for="task in selectedCell.tasks"
-          :key="task.id"
-          :task="task"
-          @task-updated="$emit('task-updated', $event)"
-        />
-      </div>
-      <div v-else class="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center">
-        <p class="text-sm text-gray-500">{{ $t('tasks.nothingDueOnDay') }}</p>
-      </div>
+    <div v-if="selectedCell" class="mt-5 flex flex-col gap-2">
+      <h3 class="section-label">{{ dayHeading(dayLabel(selectedCell.date)) }}</h3>
+      <TaskRow
+        v-for="task in selectedCell.tasks"
+        :key="task.id"
+        :task="task"
+        @task-updated="$emit('task-updated', $event)"
+      />
+      <EmptyState v-if="selectedCell.tasks.length === 0" :title="$t('tasks.nothingDueOnDay')" />
     </div>
   </div>
 </template>

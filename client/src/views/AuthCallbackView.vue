@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import AppIcon from '../components/AppIcon.vue'
 import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
@@ -34,19 +35,19 @@ onMounted(async () => {
 <template>
   <div class="flex min-h-[80vh] items-center justify-center">
     <div class="text-center">
-      <div v-if="error" class="rounded-xl bg-white p-8 shadow-lg">
-        <div class="mb-4 text-4xl">&#9888;&#65039;</div>
-        <p class="text-red-600">{{ error }}</p>
+      <div v-if="error" class="card flex flex-col items-center gap-3 p-8">
+        <AppIcon name="alert" :size="36" class="text-overdue" />
+        <p class="text-sm text-overdue-ink">{{ error }}</p>
         <RouterLink
           to="/login"
-          class="mt-4 inline-block rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500"
+          class="btn btn-primary mt-4"
         >
           {{ $t('auth.backToLogin') }}
         </RouterLink>
       </div>
       <div v-else>
-        <div class="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
-        <p class="mt-4 text-sm text-gray-500">{{ $t('auth.completingSignIn') }}</p>
+        <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary-200 border-t-primary-700" />
+        <p class="mt-4 text-sm text-ink-faint">{{ $t('auth.completingSignIn') }}</p>
       </div>
     </div>
   </div>

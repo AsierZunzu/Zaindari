@@ -2,6 +2,7 @@
 import type { Task } from '../types'
 import type { AgendaSection } from '../utils/agenda'
 import { useTaskLabels } from '../composables/useTaskLabels'
+import EmptyState from './EmptyState.vue'
 import TaskRow from './TaskRow.vue'
 
 defineProps<{
@@ -14,35 +15,36 @@ defineEmits<{
 
 const { dayHeading } = useTaskLabels()
 
+/** Only the overdue section is coloured. If everything is tinted, nothing is. */
 function sectionAccent(id: AgendaSection['id']): string {
-  if (id === 'overdue') return 'text-red-700'
-  if (id === 'completed') return 'text-gray-500'
-  return 'text-gray-900'
+  if (id === 'overdue') return 'text-overdue-ink'
+  if (id === 'completed') return 'text-ink-faint'
+  return 'text-ink'
 }
 </script>
 
 <template>
-  <div class="space-y-6">
-    <section v-for="section in sections" :key="section.id">
-      <h2 class="text-sm font-bold uppercase tracking-wide" :class="sectionAccent(section.id)">
-        {{ $t(`agenda.${section.id}`) }}
+  <div class="flex flex-col gap-8">
+    <section v-for="section in sections" :key="section.id" class="flex flex-col gap-3">
+      <!-- The rule runs the full width and the label sits on it: the sections
+           are a stack of days, and this is the join between them. -->
+      <h2 class="flex items-center gap-3 border-b border-line pb-2">
+        <span class="section-label" :class="sectionAccent(section.id)">
+          {{ $t(`agenda.${section.id}`) }}
+        </span>
       </h2>
 
-      <div v-if="section.days.length === 0" class="mt-2 rounded-lg border-2 border-dashed border-gray-200 p-6 text-center">
-        <p class="text-sm text-gray-500">{{ $t('tasks.nothingScheduled') }}</p>
-      </div>
+      <EmptyState v-if="section.days.length === 0" :title="$t('tasks.nothingScheduled')" />
 
-      <div v-else class="mt-2 space-y-4">
-        <div v-for="day in section.days" :key="day.key">
-          <h3 class="mb-2 text-xs font-semibold text-gray-500">{{ dayHeading(day.label) }}</h3>
-          <div class="space-y-2">
-            <TaskRow
-              v-for="task in day.tasks"
-              :key="task.id"
-              :task="task"
-              @task-updated="$emit('task-updated', $event)"
-            />
-          </div>
+      <div v-else class="flex flex-col gap-5">
+        <div v-for="day in section.days" :key="day.key" class="flex flex-col gap-2">
+          <h3 class="text-xs font-semibold text-ink-muted">{{ dayHeading(day.label) }}</h3>
+          <TaskRow
+            v-for="task in day.tasks"
+            :key="task.id"
+            :task="task"
+            @task-updated="$emit('task-updated', $event)"
+          />
         </div>
       </div>
     </section>

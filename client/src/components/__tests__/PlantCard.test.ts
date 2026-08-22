@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createWebHistory } from 'vue-router'
 import PlantCard from '../PlantCard.vue'
+import AppIcon from '../AppIcon.vue'
 import { api } from '../../api/client'
 import type { PlantWithImage } from '../../api/plants'
 import { createTestI18n } from '../../test/i18n'
@@ -61,10 +62,11 @@ describe('PlantCard', () => {
     expect(wrapper.text()).toContain('Balcony')
   })
 
-  it('shows placeholder when no image', () => {
+  it('falls back to the drawn sprig when there is no photo', () => {
     const wrapper = mountCard(makePlant({ currentImage: null }))
-    // The emoji placeholder should be present (seedling emoji)
-    expect(wrapper.text()).toContain('\u{1F331}')
+    // Was a 🌱 emoji, which every platform drew differently.
+    expect(wrapper.find('img').exists()).toBe(false)
+    expect(wrapper.findComponent(AppIcon).props('name')).toBe('sprig')
   })
 
   it('shows image when plant has one', async () => {
