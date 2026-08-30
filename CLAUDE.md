@@ -78,10 +78,14 @@ Intervals resolve in exactly one place — `SchedulesService.getMergedSchedules(
 
 `dueAt` is a different thing again: it is one shared fact about a task, so it cannot follow any individual's preference and falls back to `DEFAULT_DUE_TIME` when the plant pins nothing.
 
-**All due-date math uses `setUTCDate`/`setUTCHours`**, so every hour/minute above is UTC regardless of the `TZ` env var.
+**Every configured hour/minute above is a wall-clock reading, not a UTC one**, and is resolved against the instance timezone (`TZ`) by `tasks/zoned-time.ts`. Instants — `createdAt`, `dueAt`, `snoozeUntil`, `now` — stay UTC, because those are shared facts about a task rather than anybody's morning; only the stored `hour`/`minute` pairs go through the conversion. Reading them as UTC is what once made every push arrive a whole offset late.
+
+`wallClockTimeOn(instant, time, zone, plusDays)` is the single conversion, and everything that stamps a scheduled hour goes through it: `notification-window.ts`, both `dueAt` sites in `SchedulerService.createDueTasks`, and `TasksService.calculateNextDueAt`/`calculateSnoozedDueAt`. Adding days to the *reading* rather than to the instant is what keeps a daily schedule at the same local time across a DST transition. `zoned-time.ts` uses `Intl` only — do not add a date library for this.
+
+`TZ` is validated in `main.ts` and an unrecognised zone refuses to boot: falling back to UTC is indistinguishable from a correct config until somebody notices their reminders are late.
 
 ### Configuration lives in three places
-- **Env-only** (`common/config/configuration.ts`, read via `ConfigService`): port, `DATABASE_URL`, JWT settings, cookie mode, `signup.enabled`, `TZ`.
+- **Env-only** (`common/config/configuration.ts`, read via `ConfigService`): port, `DATABASE_URL`, JWT settings, cookie mode, `signup.enabled`, `TZ` (one zone per install — every account shares it; a per-user zone would go under `/api/me`).
 - **Database-backed**, editable in the admin UI: the `AppConfig` key/value table (the VAPID keypair is generated into it on first boot) and the single `OidcConfig` row (client secret is masked as `********` on read; sending that value back leaves it unchanged). Admin-editable schedules carry the interval only.
 - **Per user**, under `/api/me`: `locale`, and the reminder times (`User.notificationHour`/`Minute` plus `UserNotificationTime` rows), edited in `SettingsView.vue`. Anything a user should be able to differ on belongs here rather than in `AppConfig` — a shared plant means two accounts can want different answers from the same row of data.
 

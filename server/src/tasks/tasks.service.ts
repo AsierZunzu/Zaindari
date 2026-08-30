@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { TaskType, TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -10,13 +11,20 @@ import {
   DEFAULT_DUE_TIME,
 } from '../schedules/schedules.service.js';
 import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
+import { wallClockTimeOn } from './zoned-time.js';
 
 @Injectable()
 export class TasksService {
+  /** The instance zone every scheduled hour is read in — see `zoned-time.ts`. */
+  private readonly zone: string;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly schedulesService: SchedulesService,
-  ) {}
+    config: ConfigService,
+  ) {
+    this.zone = config.get<string>('timezone') ?? 'UTC';
+  }
 
   async getTasksForPlant(
     plantId: string,
@@ -342,15 +350,15 @@ export class TasksService {
     hour: number | null,
     minute: number | null,
   ): Date {
-    const next = new Date(from);
-    next.setUTCDate(next.getUTCDate() + intervalDays);
-    next.setUTCHours(
-      hour ?? DEFAULT_DUE_TIME.hour,
-      minute ?? DEFAULT_DUE_TIME.minute,
-      0,
-      0,
+    return wallClockTimeOn(
+      from,
+      {
+        hour: hour ?? DEFAULT_DUE_TIME.hour,
+        minute: minute ?? DEFAULT_DUE_TIME.minute,
+      },
+      this.zone,
+      intervalDays,
     );
-    return next;
   }
 
   /**
@@ -365,7 +373,8 @@ export class TasksService {
    * schedule — and a task must not come due before it was postponed to, so
    * that case rolls to the next day's occurrence instead.
    *
-   * UTC throughout, like every other due-date calculation here.
+   * The hour is read in the instance zone, like every other scheduled hour
+   * here; the instants it is compared against stay UTC.
    */
   private calculateSnoozedDueAt(
     snoozeUntil: Date,
@@ -373,18 +382,12 @@ export class TasksService {
     hour: number | null,
     minute: number | null,
   ): Date {
-    const due = new Date(snoozeUntil);
-    due.setUTCHours(
-      hour ?? DEFAULT_DUE_TIME.hour,
-      minute ?? DEFAULT_DUE_TIME.minute,
-      0,
-      0,
-    );
+    const time = {
+      hour: hour ?? DEFAULT_DUE_TIME.hour,
+      minute: minute ?? DEFAULT_DUE_TIME.minute,
+    };
 
-    if (due < now) {
-      due.setUTCDate(due.getUTCDate() + 1);
-    }
-
-    return due;
+    const due = wallClockTimeOn(snoozeUntil, time, this.zone);
+    return due < now ? wallClockTimeOn(snoozeUntil, time, this.zone, 1) : due;
   }
 }

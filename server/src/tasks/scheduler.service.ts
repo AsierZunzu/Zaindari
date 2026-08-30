@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { TaskType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -12,6 +13,7 @@ import {
 import { PushService } from '../push/push.service.js';
 import { translate } from '../i18n/messages.js';
 import { shouldNotifyNow } from './notification-window.js';
+import { wallClockTimeOn } from './zoned-time.js';
 
 /**
  * The emoji stays in code because it is the same in every language; only the
@@ -33,11 +35,23 @@ interface UserTimes {
 export class SchedulerService {
   private readonly logger = new Logger(SchedulerService.name);
 
+  /**
+   * The zone every scheduled hour in this instance is read in. One value for
+   * the whole install: a reminder time is a wall-clock reading and needs some
+   * zone to be read in, and this deployment answers that once. Validated at
+   * boot in `main.ts` — an unrecognised zone must not degrade to UTC, because
+   * silently doing so is what made reminders arrive an offset late.
+   */
+  private readonly zone: string;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly schedulesService: SchedulesService,
     private readonly pushService: PushService,
-  ) {}
+    config: ConfigService,
+  ) {
+    this.zone = config.get<string>('timezone') ?? 'UTC';
+  }
 
   /**
    * Two phases per tick. Creating a task and notifying about it are deliberately
@@ -148,12 +162,13 @@ export class SchedulerService {
 
         if (!latestTask) {
           // No tasks exist at all — create the first one
-          const dueAt = new Date();
-          dueAt.setUTCHours(
-            schedule.hour ?? DEFAULT_DUE_TIME.hour,
-            schedule.minute ?? DEFAULT_DUE_TIME.minute,
-            0,
-            0,
+          const dueAt = wallClockTimeOn(
+            new Date(),
+            {
+              hour: schedule.hour ?? DEFAULT_DUE_TIME.hour,
+              minute: schedule.minute ?? DEFAULT_DUE_TIME.minute,
+            },
+            this.zone,
           );
           await this.prisma.task.create({
             data: {
@@ -173,13 +188,14 @@ export class SchedulerService {
           const intervalMs = schedule.intervalDays * 24 * 60 * 60 * 1000;
 
           if (elapsed >= intervalMs) {
-            const dueAt = new Date(referenceDate);
-            dueAt.setUTCDate(dueAt.getUTCDate() + schedule.intervalDays);
-            dueAt.setUTCHours(
-              schedule.hour ?? DEFAULT_DUE_TIME.hour,
-              schedule.minute ?? DEFAULT_DUE_TIME.minute,
-              0,
-              0,
+            const dueAt = wallClockTimeOn(
+              referenceDate,
+              {
+                hour: schedule.hour ?? DEFAULT_DUE_TIME.hour,
+                minute: schedule.minute ?? DEFAULT_DUE_TIME.minute,
+              },
+              this.zone,
+              schedule.intervalDays,
             );
 
             await this.prisma.task.create({
@@ -266,7 +282,7 @@ export class SchedulerService {
           task.taskType,
         );
 
-        if (!shouldNotifyNow(task, now, time)) {
+        if (!shouldNotifyNow(task, now, time, this.zone)) {
           continue;
         }
 

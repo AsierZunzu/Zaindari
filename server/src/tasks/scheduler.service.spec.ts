@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SchedulerService } from './scheduler.service.js';
 import { SchedulesService } from '../schedules/schedules.service.js';
@@ -107,6 +108,15 @@ describe('SchedulerService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: SchedulesService, useValue: schedulesService },
         { provide: PushService, useValue: pushService },
+        // The specs below are written in UTC, so the instance zone is UTC and
+        // every timestamp in them reads as both local and absolute. The
+        // zone-sensitive arithmetic itself is covered in `zoned-time.spec.ts`.
+        {
+          provide: ConfigService,
+          useValue: {
+            get: (key: string) => (key === 'timezone' ? 'UTC' : undefined),
+          },
+        },
       ],
     }).compile();
 
