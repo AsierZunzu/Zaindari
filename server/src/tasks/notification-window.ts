@@ -1,3 +1,5 @@
+import { wallClockTimeOn } from './zoned-time.js';
+
 /**
  * When a reminder for a task is allowed to go out.
  *
@@ -14,8 +16,11 @@
  * that an afternoon task can sit quiet overnight — it is still visible as
  * pending in the app the whole time.
  *
- * Like every other due-date calculation in this codebase the arithmetic is UTC,
- * so the configured hour is a UTC hour regardless of the `TZ` env var.
+ * The configured time is a *wall-clock* reading, not a UTC one: someone who
+ * asks for 09:00 means nine in the morning where they are. It is resolved
+ * against the instance timezone (`TZ`, see `configuration.ts`) via
+ * `zoned-time.ts`. Instants — `createdAt`, `dueAt`, `now` — stay UTC, as they
+ * must: those are shared facts about a task rather than anyone's morning.
  */
 
 /**
@@ -34,15 +39,10 @@ export function notificationAnchor(createdAt: Date, dueAt: Date): Date {
 export function notificationDueAt(
   anchor: Date,
   time: { hour: number; minute: number },
+  zone: string,
 ): Date {
-  const due = new Date(anchor);
-  due.setUTCHours(time.hour, time.minute, 0, 0);
-
-  if (due < anchor) {
-    due.setUTCDate(due.getUTCDate() + 1);
-  }
-
-  return due;
+  const today = wallClockTimeOn(anchor, time, zone);
+  return today < anchor ? wallClockTimeOn(anchor, time, zone, 1) : today;
 }
 
 /**
@@ -52,7 +52,8 @@ export function shouldNotifyNow(
   task: { createdAt: Date; dueAt: Date },
   now: Date,
   time: { hour: number; minute: number },
+  zone: string,
 ): boolean {
   const anchor = notificationAnchor(task.createdAt, task.dueAt);
-  return now >= notificationDueAt(anchor, time);
+  return now >= notificationDueAt(anchor, time, zone);
 }
