@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import AppIcon from './AppIcon.vue'
-import { ref, watch } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAuthedImage } from '../composables/useAuthedImage'
 import { validateImageFile } from '../utils/image'
 
 const props = defineProps<{
@@ -15,18 +16,32 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const fileInput = ref<HTMLInputElement | null>(null)
-const previewUrl = ref<string | null>(null)
 const fileError = ref('')
 
-watch(
-  () => props.currentImageUrl,
-  (url) => {
-    if (url && !previewUrl.value) {
-      previewUrl.value = url
-    }
-  },
-  { immediate: true }
-)
+/**
+ * The photo already on the plant. It lives behind the authenticated
+ * `GET /api/images/:id`, so it has to be read through the api client and handed
+ * over as an object URL -- an `<img src>` pointing straight at that endpoint is
+ * a subresource load the browser makes without our Authorization header, which
+ * earns a 401 and the broken-image glyph.
+ */
+const { src: storedUrl } = useAuthedImage(() => props.currentImageUrl)
+
+/**
+ * A freshly picked file, previewed straight from disk. Kept apart from the
+ * stored photo rather than overwriting it: this one is ours to revoke, and once
+ * a pick exists it wins, because the stored photo is what the pick replaces.
+ */
+const pickedUrl = ref<string | null>(null)
+
+const previewUrl = computed(() => pickedUrl.value ?? storedUrl.value)
+
+function releasePick() {
+  if (pickedUrl.value) {
+    URL.revokeObjectURL(pickedUrl.value)
+    pickedUrl.value = null
+  }
+}
 
 function triggerFileInput() {
   fileInput.value?.click()
@@ -53,9 +68,14 @@ function handleFileChange(event: Event) {
   }
 
   fileError.value = ''
-  previewUrl.value = URL.createObjectURL(file)
+  releasePick()
+  pickedUrl.value = URL.createObjectURL(file)
   emit('file-selected', file)
 }
+
+// Object URLs pin their blob in memory until revoked; a full-size camera photo
+// would otherwise outlive the form that previewed it.
+onUnmounted(releasePick)
 </script>
 
 <template>
