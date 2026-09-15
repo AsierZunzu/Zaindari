@@ -1,0 +1,90 @@
+version: 2
+
+# Five ecosystems: the two independent npm projects, the Actions in ci.yml, the
+# Dockerfile's base image and the images in compose.yaml. Every PR runs through
+# CI, so a bump that breaks lint, tests or the image build shows up red.
+#
+# Minor and patch bumps are grouped so a quiet week is one PR per ecosystem, not
+# twenty. Majors still arrive one per dependency: each needs its own reading.
+#
+# `cooldown` holds a version back for a few days after it is published. Most
+# hijacked npm releases are caught and yanked within that window. Security
+# updates ignore the cooldown.
+
+updates:
+  - package-ecosystem: npm
+    directory: /server
+    schedule:
+      interval: "weekly"
+      day: saturday
+      time: "10:00"
+      timezone: Europe/Madrid
+    cooldown:
+      default-days: 5
+    groups:
+      # The CLI and the generated client must be on the same version, or
+      # `prisma generate` writes a client the runtime refuses to load. That
+      # holds for majors too, so this group takes every update type.
+      prisma:
+        patterns: ['prisma', '@prisma/*']
+      # @nestjs/* packages peer-depend on matching core versions.
+      nestjs:
+        patterns: ['@nestjs/*']
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /client
+    schedule:
+      interval: "weekly"
+      day: saturday
+      time: "10:00"
+      timezone: Europe/Madrid
+    cooldown:
+      default-days: 5
+    groups:
+      # vue-tsc checks against the compiler that ships with vue.
+      vue:
+        patterns: ['vue', 'vue-tsc', '@vue/*', '@vitejs/plugin-vue']
+      tailwind:
+        patterns: ['tailwindcss', '@tailwindcss/*']
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: "weekly"
+      day: saturday
+      time: "10:00"
+      timezone: Europe/Madrid
+    groups:
+      actions:
+        patterns: ['*']
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: "weekly"
+      day: saturday
+      time: "10:00"
+      timezone: Europe/Madrid
+    ignore:
+      # A Node major also changes NODE_VERSION in ci.yml, and all three stages
+      # have to move together. Bump by hand.
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: "weekly"
+      day: saturday
+      time: "10:00"
+      timezone: Europe/Madrid
+    ignore:
+      # A new Postgres major cannot open the old one's data directory. Merging
+      # the bump would stop every existing install from booting until someone
+      # runs pg_upgrade, so it needs a migration note, not an automated PR.
+      - dependency-name: postgres
+        update-types: ['version-update:semver-major']
