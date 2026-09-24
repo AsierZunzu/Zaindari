@@ -50,6 +50,22 @@ export function addDays(date: Date, days: number): Date {
   return d
 }
 
+/**
+ * The order tasks are listed in within a day. `dueAt` alone is not enough:
+ * every task without a pinned reminder time lands on the same default hour, so
+ * most of a day ties, and the server's order for tied rows shifts every time a
+ * task is completed or snoozed. Plant name, then task type, then id make the
+ * order total, so a list only moves when a task actually does.
+ */
+export function compareTasks(a: TaskWithPlant, b: TaskWithPlant): number {
+  return (
+    new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime() ||
+    a.plant.name.localeCompare(b.plant.name) ||
+    a.taskType.localeCompare(b.taskType) ||
+    a.id.localeCompare(b.id)
+  )
+}
+
 /** `YYYY-MM-DD` in local time. Deliberately not `toISOString`, which is UTC. */
 export function dayKey(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -107,7 +123,7 @@ export function groupByDay(
   if (order === 'desc') sorted.reverse()
 
   for (const day of sorted) {
-    day.tasks.sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
+    day.tasks.sort(compareTasks)
   }
 
   return sorted
@@ -202,9 +218,7 @@ export function buildMonthGrid(
         date,
         inMonth: date.getMonth() === anchor.getMonth(),
         isToday: sameDay(date, now),
-        tasks: (byDay.get(key) ?? []).sort(
-          (a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime(),
-        ),
+        tasks: (byDay.get(key) ?? []).sort(compareTasks),
       })
     }
     weeks.push(week)

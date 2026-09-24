@@ -105,7 +105,9 @@ export class TasksService {
           },
         },
       },
-      orderBy: { dueAt: 'asc' },
+      // Most tasks share the default due hour, and Postgres promises nothing
+      // about the order of tied rows — `id` makes the result repeatable.
+      orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
     });
 
     return tasks.map(({ plant, ...task }) => ({

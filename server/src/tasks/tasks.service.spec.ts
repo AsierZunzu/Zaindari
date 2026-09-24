@@ -456,7 +456,7 @@ describe('TasksService', () => {
             },
           },
         },
-        orderBy: { dueAt: 'asc' },
+        orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
       });
     });
 
