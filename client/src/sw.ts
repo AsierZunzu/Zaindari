@@ -106,6 +106,32 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options))
 })
 
+// Browsers expire and rotate push endpoints on their own; Firefox does it
+// routinely. The old endpoint then answers 410 and the server deletes it, so
+// unless the replacement reaches the server the user silently stops getting
+// reminders. The worker cannot post it itself: the subscribe endpoint needs the
+// access token, which lives in the page's localStorage. So it re-subscribes if
+// the browser did not already, and asks any open window to sync. With no
+// window open, the page's sync at its next boot picks it up.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    (async () => {
+      const key = event.oldSubscription?.options.applicationServerKey
+      if (!event.newSubscription && key) {
+        await self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: key,
+        })
+      }
+      const clients = await self.clients.matchAll({ type: 'window' })
+      for (const client of clients) {
+        // Matches PUSH_SUBSCRIPTION_CHANGED in composables/useNotifications.ts.
+        client.postMessage({ type: 'PUSH_SUBSCRIPTION_CHANGED' })
+      }
+    })(),
+  )
+})
+
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()

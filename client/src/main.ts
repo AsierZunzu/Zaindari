@@ -5,6 +5,7 @@ import router from './router'
 import { i18n, resolveInitialLocale, setLocale } from './i18n'
 import { useAuthStore } from './stores/auth'
 import { initInstallPrompt } from './composables/useInstallPrompt'
+import { initPushSubscriptionSync } from './composables/useNotifications'
 import './style.css'
 
 const app = createApp(App)
@@ -30,4 +31,5 @@ initInstallPrompt()
 const auth = useAuthStore()
 auth.ensureInitialized().then(() => {
   app.mount('#app')
+  initPushSubscriptionSync(() => auth.user?.id)
 })
