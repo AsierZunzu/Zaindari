@@ -29,8 +29,11 @@ export class PushController {
   }
 
   @Delete('subscribe')
-  async unsubscribe(@Body() body: { endpoint: string }) {
-    await this.pushService.unsubscribe(body.endpoint);
+  async unsubscribe(
+    @CurrentUser() user: { id: string },
+    @Body() body: { endpoint: string },
+  ) {
+    await this.pushService.unsubscribe(user.id, body.endpoint);
     return { ok: true };
   }
 }

@@ -81,9 +81,15 @@ export class PushService implements OnModuleInit {
     });
   }
 
-  async unsubscribe(endpoint: string) {
+  /**
+   * Scoped to the caller: an endpoint is not a secret to anyone who has seen
+   * one, so matching on it alone let any signed-in user switch off somebody
+   * else's reminders. Someone else's endpoint matches nothing, and the request
+   * still succeeds, so it reveals nothing about which endpoints exist.
+   */
+  async unsubscribe(userId: string, endpoint: string) {
     await this.prisma.pushSubscription.deleteMany({
-      where: { endpoint },
+      where: { endpoint, userId },
     });
   }
 
