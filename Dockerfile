@@ -47,6 +47,12 @@ RUN npx prisma generate
 
 # ── Stage 4: Production runtime ──────────────────────────────────────
 FROM base AS runtime
+# tini runs as PID 1. The kernel drops any signal PID 1 has not installed a
+# handler for, and Nest's shutdown hooks re-raise SIGTERM on the process once
+# cleanup is done, so node itself must not be PID 1 or that final signal is
+# ignored and `docker stop` waits out its timeout before a SIGKILL.
+RUN apt-get update && apt-get install -y --no-install-recommends tini \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY --from=server-deps /app/node_modules ./node_modules
@@ -69,5 +75,9 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-# Run migrations then start the server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Run migrations then start the server. `exec` replaces the shell with node,
+# so the SIGTERM tini forwards reaches the app rather than a shell that
+# neither handles nor passes it on.
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/main.js"]

@@ -11,6 +11,11 @@ import { AppModule } from './app.module.js';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // On SIGTERM (docker stop), close the HTTP server, stop the cron jobs and
+  // disconnect Prisma through the modules' destroy hooks instead of dying
+  // mid-request when the container is killed.
+  app.enableShutdownHooks();
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
