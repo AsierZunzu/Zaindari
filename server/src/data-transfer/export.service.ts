@@ -109,26 +109,24 @@ export class ExportService {
           minute: time.minute,
         })),
       },
-      plants: plants.map(
-        (plant): BundlePlant => ({
-          name: plant.name,
-          location: plant.location,
-          instructions: plant.instructions,
-          createdAt: plant.createdAt.toISOString(),
-          schedules: plant.schedules.map((schedule) => ({
-            taskType: schedule.taskType,
-            intervalDays: schedule.intervalDays,
-            hour: schedule.hour,
-            minute: schedule.minute,
-            enabled: schedule.enabled,
-          })),
-          images: plant.images.map((image) => ({
-            id: image.id,
-            isCurrent: image.isCurrent,
-            createdAt: image.createdAt.toISOString(),
-          })),
-        }),
-      ),
+      plants: plants.map((plant): BundlePlant => ({
+        name: plant.name,
+        location: plant.location,
+        instructions: plant.instructions,
+        createdAt: plant.createdAt.toISOString(),
+        schedules: plant.schedules.map((schedule) => ({
+          taskType: schedule.taskType,
+          intervalDays: schedule.intervalDays,
+          hour: schedule.hour,
+          minute: schedule.minute,
+          enabled: schedule.enabled,
+        })),
+        images: plant.images.map((image) => ({
+          id: image.id,
+          isCurrent: image.isCurrent,
+          createdAt: image.createdAt.toISOString(),
+        })),
+      })),
     };
 
     const manifest: BundleManifest = {
