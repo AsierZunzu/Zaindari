@@ -72,6 +72,34 @@ describe('groupByDay', () => {
     expect(days[1].key).toBe('2026-07-25')
   })
 
+  it('breaks a shared due time by plant name, then task type', () => {
+    const at = '2026-07-23T09:00:00'
+    const ficus = { id: 'plant-2', name: 'Ficus', location: null, currentImage: null }
+    const days = groupByDay(
+      [
+        task({ id: 'a', dueAt: at, taskType: 'watering' }),
+        task({ id: 'b', dueAt: at, taskType: 'watering', plantId: 'plant-2', plant: ficus }),
+        task({ id: 'c', dueAt: at, taskType: 'fertilization' }),
+      ],
+      NOW,
+    )
+
+    expect(days[0].tasks.map((t) => t.id)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('lists tied tasks the same way whatever order they arrive in', () => {
+    const at = '2026-07-23T09:00:00'
+    const tasks = [
+      task({ id: 'a', dueAt: at }),
+      task({ id: 'b', dueAt: at }),
+      task({ id: 'c', dueAt: at }),
+    ]
+
+    const forwards = groupByDay(tasks, NOW)[0].tasks.map((t) => t.id)
+    const backwards = groupByDay([...tasks].reverse(), NOW)[0].tasks.map((t) => t.id)
+    expect(backwards).toEqual(forwards)
+  })
+
   it('reverses the day order for history', () => {
     const days = groupByDay(
       [
@@ -172,6 +200,21 @@ describe('buildMonthGrid', () => {
     expect(cells.find((c) => c.key === '2026-07-23')!.tasks.map((t) => t.id)).toEqual(['a', 'b'])
     expect(cells.find((c) => c.key === '2026-07-30')!.tasks.map((t) => t.id)).toEqual(['c'])
     expect(cells.find((c) => c.key === '2026-07-24')!.tasks).toEqual([])
+  })
+
+  it('orders a day cell the same way as the agenda', () => {
+    const at = '2026-07-23T09:00:00'
+    const weeks = buildMonthGrid(
+      new Date('2026-07-01T00:00:00'),
+      [
+        task({ id: 'a', dueAt: at, taskType: 'watering' }),
+        task({ id: 'b', dueAt: at, taskType: 'fertilization' }),
+      ],
+      NOW,
+    )
+
+    const cell = weeks.flat().find((c) => c.key === '2026-07-23')!
+    expect(cell.tasks.map((t) => t.id)).toEqual(['b', 'a'])
   })
 
   it('marks the current day', () => {
