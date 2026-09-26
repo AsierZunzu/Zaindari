@@ -112,6 +112,19 @@ describe('ApiClient', () => {
     expect(localStorage.getItem('accessToken')).toBe('expired-token')
   })
 
+  it('keeps the token when the refresh fails with a server error', async () => {
+    localStorage.setItem('accessToken', 'expired-token')
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(401, { message: 'Unauthorized' }))
+      .mockResolvedValueOnce(new Response('Bad Gateway', { status: 502 }))
+
+    // A reverse proxy answers 502 while the container restarts; that is an
+    // outage, not the server rejecting the session.
+    await expect(api.get('/api/plants')).rejects.toMatchObject({ status: 502 })
+    expect(localStorage.getItem('accessToken')).toBe('expired-token')
+    expect(window.location.href).toBe('/dashboard')
+  })
+
   it('raises NetworkError when the server cannot be reached at all', async () => {
     localStorage.setItem('accessToken', 'token-1')
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))

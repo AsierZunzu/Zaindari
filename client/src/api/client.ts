@@ -69,8 +69,14 @@ class ApiClient {
           throw new NetworkError(err)
         })
 
-        if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
           throw new ApiError(response.status, 'Session expired', 'auth.sessionExpired')
+        }
+        if (!response.ok) {
+          // A 5xx here is a proxy answering for a restarting container, or the
+          // server failing to reach its database. Neither is a verdict on the
+          // session, so it must not be reported as one.
+          throw new ApiError(response.status, response.statusText)
         }
 
         const data = await response.json()
@@ -149,9 +155,11 @@ class ApiClient {
     try {
       await this.refreshAccessToken()
     } catch (err) {
-      // A refresh that failed because the server is unreachable says nothing
+      // Only the server can end a session, and it does so by rejecting the
+      // cookie. A refresh that failed any other way -- the server unreachable,
+      // or a 502 from the proxy while the container restarts -- says nothing
       // about whether the session is valid, so keep it and surface the outage.
-      if (err instanceof NetworkError) {
+      if (!isSessionRejection(err)) {
         throw err
       }
       this.endSession()
@@ -232,6 +240,10 @@ class ApiClient {
   put<T>(url: string, body?: unknown): Promise<T> {
     return this.request<T>('PUT', url, body)
   }
+}
+
+function isSessionRejection(err: unknown): boolean {
+  return err instanceof ApiError && (err.status === 401 || err.status === 403)
 }
 
 /**

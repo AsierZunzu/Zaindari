@@ -127,8 +127,13 @@ export class AuthController {
       this.attachSession(req, res, refreshToken);
       return { accessToken };
     } catch (error) {
-      // The cookie is dead; stop the browser from replaying it forever.
-      clearRefreshCookie(req, res, this.configuredSecure);
+      // Only a rejected token means the cookie is dead; then stop the browser
+      // from replaying it forever. Anything else (the database restarting, a
+      // dropped connection) says nothing about the token, and clearing the
+      // cookie would turn a brief outage into a forced logout.
+      if (error instanceof UnauthorizedException) {
+        clearRefreshCookie(req, res, this.configuredSecure);
+      }
       throw error;
     }
   }
