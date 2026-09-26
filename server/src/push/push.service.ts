@@ -104,10 +104,15 @@ export class PushService implements OnModuleInit {
           );
         } catch (err) {
           // 410 Gone / 404 mean the push service has permanently dropped this
-          // endpoint; anything else is transient and worth surfacing.
+          // endpoint. 403 means it refuses our VAPID signature for it: the
+          // subscription was made for a keypair this instance no longer has
+          // (a recreated database regenerates it), and will be refused forever.
+          // Keeping any of these would fail every reminder silently; the client
+          // re-registers a live subscription the next time the app starts.
+          // Anything else is transient and worth surfacing.
           const statusCode =
             err instanceof webPush.WebPushError ? err.statusCode : undefined;
-          if (statusCode === 410 || statusCode === 404) {
+          if (statusCode === 410 || statusCode === 404 || statusCode === 403) {
             this.logger.warn(`Removing stale subscription ${sub.id}`);
             await this.prisma.pushSubscription.delete({
               where: { id: sub.id },
