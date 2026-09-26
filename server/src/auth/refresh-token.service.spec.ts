@@ -15,10 +15,11 @@ describe('RefreshTokenService', () => {
     refreshToken: {
       create: ReturnType<typeof vi.fn>;
       findUnique: ReturnType<typeof vi.fn>;
-      update: ReturnType<typeof vi.fn>;
+      findFirst: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
       deleteMany: ReturnType<typeof vi.fn>;
     };
+    $transaction: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -26,10 +27,12 @@ describe('RefreshTokenService', () => {
       refreshToken: {
         create: vi.fn().mockResolvedValue({}),
         findUnique: vi.fn(),
-        update: vi.fn().mockResolvedValue({}),
+        findFirst: vi.fn().mockResolvedValue(null),
         updateMany: vi.fn().mockResolvedValue({ count: 0 }),
         deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       },
+      // Interactive transactions run against the same mock.
+      $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -79,13 +82,14 @@ describe('RefreshTokenService', () => {
 
     it('consumes the old token and issues a replacement in the same family', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(validRow);
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await service.rotate('raw-token', 'Firefox');
 
       expect(result.userId).toBe('user-1');
       expect(result.refreshToken).toBeTruthy();
-      expect(prisma.refreshToken.update).toHaveBeenCalledWith({
-        where: { id: 'token-1' },
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { id: 'token-1', revokedAt: null },
         data: { revokedAt: expect.any(Date) },
       });
       expect(prisma.refreshToken.create.mock.calls[0][0].data.familyId).toBe(
@@ -95,6 +99,7 @@ describe('RefreshTokenService', () => {
 
     it('extends the expiry on each use (sliding session)', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(validRow);
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
 
       await service.rotate('raw-token');
 
@@ -126,8 +131,9 @@ describe('RefreshTokenService', () => {
     it('revokes the whole family when a consumed token is replayed', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue({
         ...validRow,
-        revokedAt: new Date(),
+        revokedAt: new Date(Date.now() - 5 * 60_000),
       });
+      prisma.refreshToken.findFirst.mockResolvedValue({ id: 'token-2' });
 
       await expect(service.rotate('raw-token')).rejects.toThrow(
         UnauthorizedException,
@@ -136,6 +142,54 @@ describe('RefreshTokenService', () => {
         where: { familyId: 'family-1', revokedAt: null },
         data: { revokedAt: expect.any(Date) },
       });
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('tolerates a token rotated moments ago by a racing request', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        ...validRow,
+        revokedAt: new Date(Date.now() - 2_000),
+      });
+      prisma.refreshToken.findFirst.mockResolvedValue({ id: 'token-2' });
+
+      const result = await service.rotate('raw-token');
+
+      // Two windows refreshing at once, or a response lost to a locked phone:
+      // the client gets a token and the family survives.
+      expect(result.userId).toBe('user-1');
+      expect(prisma.refreshToken.create.mock.calls[0][0].data.familyId).toBe(
+        'family-1',
+      );
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('does not revive a token signed out moments ago', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        ...validRow,
+        revokedAt: new Date(Date.now() - 2_000),
+      });
+      // Logout leaves the family with no live token, unlike a rotation.
+      prisma.refreshToken.findFirst.mockResolvedValue(null);
+
+      await expect(service.rotate('raw-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('lets only one of two concurrent rotations consume the token', async () => {
+      // Both requests read the token as live; this one loses the claim.
+      prisma.refreshToken.findUnique
+        .mockResolvedValueOnce(validRow)
+        .mockResolvedValueOnce({ ...validRow, revokedAt: new Date() });
+      prisma.refreshToken.updateMany.mockResolvedValueOnce({ count: 0 });
+      prisma.refreshToken.findFirst.mockResolvedValue({ id: 'token-2' });
+
+      const result = await service.rotate('raw-token');
+
+      expect(result.userId).toBe('user-1');
+      // No successor from the lost claim, one from the grace path.
+      expect(prisma.refreshToken.create).toHaveBeenCalledTimes(1);
     });
   });
 
