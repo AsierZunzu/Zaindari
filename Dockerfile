@@ -34,8 +34,10 @@ RUN npm ci --omit=dev
 # Copy built server
 COPY --from=server-build /app/server/dist ./dist
 
-# Copy Prisma schema + generated client
+# Copy Prisma schema, CLI config + generated client. `migrate deploy` reads
+# the connection URL from prisma.config.ts, not from the schema.
 COPY server/prisma ./prisma
+COPY server/prisma.config.ts ./
 COPY --from=server-build /app/server/node_modules/.prisma ./node_modules/.prisma
 COPY --from=server-build /app/server/node_modules/@prisma ./node_modules/@prisma
 
@@ -51,4 +53,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Run migrations then start the server
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=./prisma/schema.prisma && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
