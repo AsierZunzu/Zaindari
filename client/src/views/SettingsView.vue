@@ -257,7 +257,11 @@ async function installApp() {
           {{ $t('settings.notificationsBlocked') }}
         </p>
 
-        <p v-else-if="isSubscribed" class="badge bg-done-soft text-done-ink">
+        <p
+          v-else-if="isSubscribed"
+          class="flex items-center gap-2 rounded-md bg-done-soft px-3 py-2.5 text-sm text-done-ink"
+        >
+          <AppIcon name="check" :size="16" class="shrink-0" />
           {{ $t('settings.notificationsEnabled') }}
         </p>
       </template>
