@@ -24,7 +24,7 @@ npm run test:cov               # coverage (v8)
 
 npx prisma generate                        # after any schema.prisma change
 npx prisma migrate dev --name <desc>       # author a migration locally
-npx prisma migrate deploy                  # apply (what the container runs on boot)
+npx prisma migrate deploy                  # apply from a checkout (the container runs dist/migrate.js instead)
 ```
 Needs `DATABASE_URL`; the easiest local database is `docker compose up postgres`.
 
@@ -47,6 +47,9 @@ cp .env.example .env && docker compose up --build    # app + postgres
 
 ### One process serves both halves
 In production `server/src/main.ts` serves `./static` (the built client) plus an SPA fallback for every path that is not `/api/*` or `/uploads/*`. The Dockerfile builds the client in its own stage and copies `client/dist` → `/app/static`. So there is no separate web server, and client routes must never collide with `/api` or `/uploads`.
+
+### Migrations run without the Prisma CLI
+The image leaves the CLI out (~250 MB), so the container boots with `node dist/migrate.js` (`src/migrations/`) instead of `prisma migrate deploy`. It is interchangeable with the CLI, not a replacement for it: same `_prisma_migrations` table and rows, same checksum (SHA-256 of the raw file bytes — CRLF and LF differ), same advisory lock key, so either can follow the other against one database. Keep it that way; authoring stays `prisma migrate dev`. Two deliberate differences: each migration runs in its own transaction (so a hand-written one cannot use `CREATE INDEX CONCURRENTLY`), and a failure leaves no half-applied row behind. The CLI is a devDependency but still `devOptional` (an optional peer of `@prisma/client`), which is why the Dockerfile's `server-deps` stage prunes by that lockfile flag.
 
 ### Auth: split access/refresh
 - **Access token**: short-lived JWT (15m default) in `localStorage`, sent as `Authorization: Bearer`.
