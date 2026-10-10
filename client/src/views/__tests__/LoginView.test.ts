@@ -40,6 +40,18 @@ describe('LoginView', () => {
     expect(wrapper.text()).toContain('Please fill in all fields')
   })
 
+  it('explains that the session expired when sent here by the api client', async () => {
+    await router.push('/login?expired=1')
+    const wrapper = mountLogin()
+    expect(wrapper.text()).toContain('Your session has expired. Please sign in again.')
+  })
+
+  it('shows no expiry notice when opened directly', async () => {
+    await router.push('/login')
+    const wrapper = mountLogin()
+    expect(wrapper.text()).not.toContain('Your session has expired')
+  })
+
   it('has link to register page', () => {
     const wrapper = mountLogin()
     expect(wrapper.text()).toContain('Sign up')

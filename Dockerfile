@@ -52,5 +52,7 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-# Run migrations then start the server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+# Run migrations then start the server. `exec` replaces the shell with node:
+# otherwise sh stays PID 1, never forwards SIGTERM, and every `docker stop`
+# ends in a SIGKILL ten seconds later with requests still in flight.
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/main.js"]

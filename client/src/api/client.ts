@@ -33,6 +33,9 @@ class NetworkError extends Error {
   }
 }
 
+/** Query flag `/login` reads to explain that the server ended the session. */
+const SESSION_EXPIRED_PARAM = 'expired'
+
 class ApiClient {
   /**
    * Single-flight guard: a page that fires several requests at once must not
@@ -118,7 +121,10 @@ class ApiClient {
   private endSession(): never {
     this.clearToken()
     if (!window.location.pathname.startsWith('/login')) {
-      window.location.href = '/login'
+      // Flagged so the login screen can say why the user is there. A silent
+      // bounce reads as nothing having happened, and a user who doesn't sign
+      // back in never sees their tasks.
+      window.location.href = `/login?${SESSION_EXPIRED_PARAM}=1`
     }
     throw new ApiError(401, 'Session expired', 'auth.sessionExpired')
   }
@@ -260,4 +266,4 @@ function filenameFrom(header: string | null): string | null {
 }
 
 export const api = new ApiClient()
-export { ApiError, NetworkError }
+export { ApiError, NetworkError, SESSION_EXPIRED_PARAM }
