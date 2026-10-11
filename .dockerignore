@@ -11,6 +11,8 @@ server/static
 # ── VCS & editors ────────────────────────────────────────────────────
 .git
 .gitignore
+.github
+.claude
 .idea
 .vscode
 **/.DS_Store
@@ -37,4 +39,6 @@ uploads
 **/*.md
 Dockerfile
 .dockerignore
-compose.yaml
+compose*.yaml
+compose*.yml
+scripts
