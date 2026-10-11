@@ -1,8 +1,10 @@
 {
   "extends": "./tsconfig.json",
-  // vitest.config.ts and prisma.config.ts must be excluded: as root-level files
-  // they widen the inferred rootDir from src/ to the project root, emitting
-  // dist/src/main.js instead of dist/main.js.
+  // TypeScript 6 no longer infers rootDir; without it the build refuses to pick
+  // an output layout. Pinning it to src/ is what emits dist/main.js rather than
+  // dist/src/main.js, and why vitest.config.ts and prisma.config.ts, root-level
+  // files outside it, must be excluded.
+  "compilerOptions": { "rootDir": "./src" },
   "exclude": [
     "node_modules",
     "test",
