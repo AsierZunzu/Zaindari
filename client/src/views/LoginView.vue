@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppIcon from '../components/AppIcon.vue'
-import { api } from '../api/client'
+import { api, SESSION_EXPIRED_PARAM } from '../api/client'
 import { useI18n } from 'vue-i18n'
 import { useApiError } from '../composables/useApiError'
 
 const auth = useAuthStore()
+const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const { apiErrorMessage } = useApiError()
@@ -18,6 +19,9 @@ const error = ref('')
 const loading = ref(false)
 const oidcLoading = ref(false)
 const oidcAvailable = ref(false)
+// Set when the api client sent us here because the server rejected the session,
+// as opposed to someone opening the login page themselves.
+const sessionExpired = SESSION_EXPIRED_PARAM in route.query
 
 onMounted(async () => {
   // Check if OIDC is available
@@ -74,6 +78,14 @@ async function loginWithOidc() {
         </div>
 
         <form @submit.prevent="handleSubmit" class="space-y-4">
+          <div
+            v-if="sessionExpired && !error"
+            role="status"
+            class="rounded-md bg-due-soft px-3 py-2.5 text-sm text-due-ink"
+          >
+            {{ $t('errors.auth.sessionExpired') }}
+          </div>
+
           <div v-if="error" class="rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink">
             {{ error }}
           </div>

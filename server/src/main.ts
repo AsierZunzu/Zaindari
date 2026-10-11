@@ -11,6 +11,12 @@ import { AppModule } from './app.module.js';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // `docker stop` sends SIGTERM. Without a handler node dies on the spot, cutting
+  // off whatever was in flight — and a refresh cut off after its token was
+  // rotated leaves the browser holding a consumed cookie. Closing the app
+  // instead lets in-flight requests finish before the process exits.
+  app.enableShutdownHooks();
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

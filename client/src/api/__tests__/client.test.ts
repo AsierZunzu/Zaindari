@@ -99,6 +99,8 @@ describe('ApiClient', () => {
 
     await expect(api.get('/api/plants')).rejects.toThrow(ApiError)
     expect(localStorage.getItem('accessToken')).toBeNull()
+    // Flagged, so the login screen explains why the user landed there.
+    expect(window.location.href).toBe('/login?expired=1')
   })
 
   it('keeps the token when the refresh fails because the server is unreachable', async () => {

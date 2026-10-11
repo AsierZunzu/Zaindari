@@ -15,10 +15,11 @@ describe('RefreshTokenService', () => {
     refreshToken: {
       create: ReturnType<typeof vi.fn>;
       findUnique: ReturnType<typeof vi.fn>;
-      update: ReturnType<typeof vi.fn>;
+      count: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
       deleteMany: ReturnType<typeof vi.fn>;
     };
+    $transaction: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -26,10 +27,13 @@ describe('RefreshTokenService', () => {
       refreshToken: {
         create: vi.fn().mockResolvedValue({}),
         findUnique: vi.fn(),
-        update: vi.fn().mockResolvedValue({}),
+        count: vi.fn().mockResolvedValue(0),
         updateMany: vi.fn().mockResolvedValue({ count: 0 }),
         deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       },
+      // Interactive transactions hand the callback a client; the mock itself
+      // stands in for it, so writes made inside are asserted the same way.
+      $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -84,13 +88,24 @@ describe('RefreshTokenService', () => {
 
       expect(result.userId).toBe('user-1');
       expect(result.refreshToken).toBeTruthy();
-      expect(prisma.refreshToken.update).toHaveBeenCalledWith({
-        where: { id: 'token-1' },
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { familyId: 'family-1', revokedAt: null },
         data: { revokedAt: expect.any(Date) },
       });
       expect(prisma.refreshToken.create.mock.calls[0][0].data.familyId).toBe(
         'family-1',
       );
+    });
+
+    it('consumes and replaces in one transaction', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue(validRow);
+      prisma.refreshToken.create.mockRejectedValue(new Error('killed'));
+
+      // A process dying between the two writes must not strand the family with
+      // nothing live, so both happen inside the transaction callback.
+      await expect(service.rotate('raw-token')).rejects.toThrow('killed');
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledTimes(1);
     });
 
     it('extends the expiry on each use (sliding session)', async () => {
@@ -126,8 +141,9 @@ describe('RefreshTokenService', () => {
     it('revokes the whole family when a consumed token is replayed', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue({
         ...validRow,
-        revokedAt: new Date(),
+        revokedAt: new Date(Date.now() - 5 * 60_000),
       });
+      prisma.refreshToken.count.mockResolvedValue(1);
 
       await expect(service.rotate('raw-token')).rejects.toThrow(
         UnauthorizedException,
@@ -136,6 +152,44 @@ describe('RefreshTokenService', () => {
         where: { familyId: 'family-1', revokedAt: null },
         data: { revokedAt: expect.any(Date) },
       });
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('re-issues a token rotated moments ago instead of treating it as theft', async () => {
+      // The browser never received the replacement: a response lost to a
+      // container restart, or a second tab refreshing with the same cookie.
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        ...validRow,
+        revokedAt: new Date(Date.now() - 5_000),
+      });
+      prisma.refreshToken.count.mockResolvedValue(1);
+
+      const result = await service.rotate('raw-token');
+
+      expect(result.userId).toBe('user-1');
+      expect(result.refreshToken).toBeTruthy();
+      // The successor nobody holds is retired, leaving one live token.
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { familyId: 'family-1', revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(prisma.refreshToken.create.mock.calls[0][0].data.familyId).toBe(
+        'family-1',
+      );
+    });
+
+    it('does not revive a token revoked by logout, even within the grace window', async () => {
+      // Logout leaves the family with nothing live; rotation never does.
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        ...validRow,
+        revokedAt: new Date(Date.now() - 5_000),
+      });
+      prisma.refreshToken.count.mockResolvedValue(0);
+
+      await expect(service.rotate('raw-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
     });
   });
 
