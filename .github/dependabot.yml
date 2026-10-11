@@ -30,13 +30,27 @@ updates:
       # @nestjs/* packages peer-depend on matching core versions.
       nestjs:
         patterns: ['@nestjs/*']
+      # @vitest/coverage-v8 peers on the exact vitest version, so a vitest
+      # bump on its own cannot install.
+      vitest:
+        patterns: ['vitest', '@vitest/*']
+      # @eslint/js peers on its own eslint major. Bumped apart, npm ci may
+      # still pass, but regenerating the lockfile refuses the pair.
+      eslint:
+        patterns: ['eslint', '@eslint/*']
       # Dependabot ranks a group that sets update-types as more specific than
       # one that only sets patterns, so without the exclusion this group claims
-      # every @nestjs/* and @prisma/* package and their majors fall out as one
+      # every package the groups above name, and their majors fall out as one
       # unmergeable PR per package.
       minor-and-patch:
         update-types: [minor, patch]
-        exclude-patterns: ['@nestjs/*', 'prisma', '@prisma/*']
+        exclude-patterns:
+          ['@nestjs/*', 'prisma', '@prisma/*', 'vitest', '@vitest/*', 'eslint', '@eslint/*']
+    ignore:
+      # typescript-eslint supports typescript <6.1 only, so a 7.x bump cannot
+      # install. Lift this once typescript-eslint accepts 7.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: npm
     directory: /client
