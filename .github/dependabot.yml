@@ -30,8 +30,13 @@ updates:
       # @nestjs/* packages peer-depend on matching core versions.
       nestjs:
         patterns: ['@nestjs/*']
+      # Dependabot ranks a group that sets update-types as more specific than
+      # one that only sets patterns, so without the exclusion this group claims
+      # every @nestjs/* and @prisma/* package and their majors fall out as one
+      # unmergeable PR per package.
       minor-and-patch:
         update-types: [minor, patch]
+        exclude-patterns: ['@nestjs/*', 'prisma', '@prisma/*']
 
   - package-ecosystem: npm
     directory: /client

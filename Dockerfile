@@ -35,15 +35,25 @@ RUN npm run build
 
 # ── Stage 3: Production dependencies ─────────────────────────────────
 # Built in its own stage (in parallel with the two above) and copied into the
-# runtime whole, generated client included, so the runtime never overlays
-# dev-install Prisma packages on top of a prod install.
-FROM base AS server-deps
+# runtime whole.
+#
+# The Prisma CLI is a devDependency — migrations run through dist/migrate.js —
+# but `--omit=dev` alone does not remove it: @prisma/client lists it as an
+# optional peer, so npm marks it and its whole tree (Studio, a bundled
+# TypeScript, the schema engine; ~250 MB) `devOptional` and installs it
+# anyway. The lockfile's `devOptional` flag names exactly that tree, so delete
+# it by that flag, then prove the native modules the app does need survived:
+# nothing in CI boots the image, so a wrong prune would otherwise first show
+# up as a crash on someone's server.
+FROM node:24-slim AS server-deps
 WORKDIR /app
 COPY server/package.json server/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
-COPY server/prisma ./prisma
-COPY server/prisma.config.ts ./
-RUN npx prisma generate
+RUN node -e "const fs = require('fs'); \
+      for (const [path, pkg] of Object.entries(require('./package-lock.json').packages)) \
+        if (path && pkg.devOptional) fs.rmSync(path, { recursive: true, force: true });" \
+    && node -e "require('sharp'); require('bcrypt'); require('pg'); require('@prisma/adapter-pg')" \
+    && test ! -e node_modules/prisma
 
 # ── Stage 4: Production runtime ──────────────────────────────────────
 FROM base AS runtime
@@ -58,10 +68,13 @@ WORKDIR /app
 COPY --from=server-deps /app/node_modules ./node_modules
 COPY server/package.json ./
 
-# Prisma schema + CLI config. `migrate deploy` reads the connection URL from
-# prisma.config.ts, not from the schema.
-COPY server/prisma ./prisma
-COPY server/prisma.config.ts ./
+# The generated client comes from the build stage, the only one with the CLI
+# to generate it. It is derived from the schema alone, so it is the same file
+# whichever install produced it.
+COPY --from=server-build /app/server/node_modules/.prisma ./node_modules/.prisma
+
+# dist/migrate.js applies these on boot; the schema itself is not needed.
+COPY server/prisma/migrations ./prisma/migrations
 
 # Most-often-changing layers last.
 COPY --from=server-build /app/server/dist ./dist
@@ -80,4 +93,4 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 # Run migrations then start the server. `exec` replaces the shell with node,
 # so the SIGTERM tini forwards reaches the app rather than a shell that
 # neither handles nor passes it on.
-CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/main.js"]
+CMD ["sh", "-c", "node dist/migrate.js && exec node dist/main.js"]
