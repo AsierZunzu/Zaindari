@@ -25,10 +25,10 @@
     "@vitejs/plugin-vue": "^6.0.10",
     "@vue/test-utils": "^2.5.1",
     "@vue/tsconfig": "^0.9.1",
-    "happy-dom": "^21.0.1",
+    "happy-dom": "^21.0.4",
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.2",
-    "vite": "^8.3.4",
+    "vite": "^8.3.5",
     "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.0.5",
     "vue-tsc": "^3.3.13"
