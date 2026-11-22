@@ -24,12 +24,13 @@ function pushError(statusCode: number) {
   );
 }
 
-describe('PushService.sendNotification', () => {
+describe('PushService', () => {
   let service: PushService;
   let prisma: {
     pushSubscription: {
       findMany: ReturnType<typeof vi.fn>;
       delete: ReturnType<typeof vi.fn>;
+      deleteMany: ReturnType<typeof vi.fn>;
     };
   };
 
@@ -48,6 +49,7 @@ describe('PushService.sendNotification', () => {
       pushSubscription: {
         findMany: vi.fn().mockResolvedValue([subscription]),
         delete: vi.fn().mockResolvedValue({}),
+        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       },
     };
 
@@ -111,5 +113,17 @@ describe('PushService.sendNotification', () => {
     await service.sendNotification('user-1', payload);
 
     expect(prisma.pushSubscription.delete).not.toHaveBeenCalled();
+  });
+
+  describe('unsubscribe', () => {
+    it("deletes only the caller's own subscription", async () => {
+      await service.unsubscribe('user-1', subscription.endpoint);
+
+      // Matching on the endpoint alone let anyone who knew it switch off
+      // another user's reminders.
+      expect(prisma.pushSubscription.deleteMany).toHaveBeenCalledWith({
+        where: { endpoint: subscription.endpoint, userId: 'user-1' },
+      });
+    });
   });
 });
