@@ -77,7 +77,17 @@ EXPOSE 3000
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
+# Drops root to PUID:PGID (default 1000:1000) before the app starts; see the
+# script for how it treats volumes left root-owned by earlier versions.
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["/usr/bin/tini", "--", "docker-entrypoint.sh"]
+
+# Prisma's update check writes under $HOME, which the unprivileged user
+# cannot write to.
+ENV CHECKPOINT_DISABLE=1
+
 # Run migrations then start the server. `exec` replaces the shell with node,
 # so the SIGTERM tini forwards reaches the app rather than a shell that
-# neither handles nor passes it on.
-CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/main.js"]
+# neither handles nor passes it on. The prisma binary is called directly
+# because npx wants a writable npm cache in $HOME.
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && exec node dist/main.js"]
