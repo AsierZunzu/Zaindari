@@ -63,7 +63,11 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/api': 'http://localhost:3000',
+      // The object form, because the string shorthand sets changeOrigin, and the
+      // server then sees Host: localhost:3000. The OIDC redirect_uri is built
+      // from Host, so the provider would send the browser back to :3000, where
+      // dev has no SPA to finish the sign-in.
+      '/api': { target: 'http://localhost:3000', changeOrigin: false },
     },
   },
 })

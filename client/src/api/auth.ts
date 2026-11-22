@@ -10,6 +10,11 @@ interface RefreshResponse {
   accessToken: string
 }
 
+export interface OidcStatus {
+  enabled: boolean
+  name: string | null
+}
+
 export const authApi = {
   login(username: string, password: string): Promise<AuthResponse> {
     return api.post('/api/auth/login', { username, password })
@@ -21,6 +26,15 @@ export const authApi = {
 
   refreshToken(): Promise<RefreshResponse> {
     return api.post('/api/auth/refresh')
+  },
+
+  oidcStatus(): Promise<OidcStatus> {
+    return api.get('/api/auth/oidc/status')
+  },
+
+  /** Also sets the short-lived cookie the callback checks the attempt against. */
+  oidcStart(): Promise<{ url: string }> {
+    return api.get('/api/auth/oidc')
   },
 
   logout(): Promise<void> {

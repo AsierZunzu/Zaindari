@@ -85,7 +85,7 @@ Intervals resolve in exactly one place — `SchedulesService.getMergedSchedules(
 `TZ` is validated in `main.ts` and an unrecognised zone refuses to boot: falling back to UTC is indistinguishable from a correct config until somebody notices their reminders are late.
 
 ### Configuration lives in three places
-- **Env-only** (`common/config/configuration.ts`, read via `ConfigService`): port, `DATABASE_URL`, JWT settings, cookie mode, `signup.enabled`, `TZ` (one zone per install — every account shares it; a per-user zone would go under `/api/me`).
+- **Env-only** (`common/config/configuration.ts`, read via `ConfigService`): port, `DATABASE_URL`, JWT settings, cookie mode, `signup.enabled`, the optional OIDC provider (`ZAINDARI_OIDC_*`, resolved by `auth/oidc-env.ts`; all-or-nothing, validated at boot, and when set it overrides the `OidcConfig` row and makes the admin panel's OIDC page read-only), `TZ` (one zone per install — every account shares it; a per-user zone would go under `/api/me`).
 - **Database-backed**, editable in the admin UI: the `AppConfig` key/value table (the VAPID keypair is generated into it on first boot) and the single `OidcConfig` row (client secret is masked as `********` on read; sending that value back leaves it unchanged). Admin-editable schedules carry the interval only.
 - **Per user**, under `/api/me`: `locale`, and the reminder times (`User.notificationHour`/`Minute` plus `UserNotificationTime` rows), edited in `SettingsView.vue`. Anything a user should be able to differ on belongs here rather than in `AppConfig` — a shared plant means two accounts can want different answers from the same row of data.
 

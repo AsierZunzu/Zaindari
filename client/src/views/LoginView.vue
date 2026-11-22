@@ -3,36 +3,46 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppIcon from '../components/AppIcon.vue'
-import { api, SESSION_EXPIRED_PARAM } from '../api/client'
+import { SESSION_EXPIRED_PARAM } from '../api/client'
+import { authApi } from '../api/auth'
 import { useI18n } from 'vue-i18n'
 import { useApiError } from '../composables/useApiError'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
+const { t, te } = useI18n()
 const { apiErrorMessage } = useApiError()
+
+/**
+ * The OIDC callback is a page load, so when it fails the server can only
+ * redirect here with an error code in the query; it is worded like any other.
+ */
+function ssoErrorFromQuery(): string {
+  const code = route.query.sso
+  if (typeof code !== 'string') return ''
+  const key = `errors.${code}`
+  return te(key) ? t(key) : t('errors.auth.oidcFailed')
+}
 
 const username = ref('')
 const password = ref('')
-const error = ref('')
+const error = ref(ssoErrorFromQuery())
 const loading = ref(false)
 const oidcLoading = ref(false)
 const oidcAvailable = ref(false)
+const oidcName = ref<string | null>(null)
 // Set when the api client sent us here because the server rejected the session,
 // as opposed to someone opening the login page themselves.
 const sessionExpired = SESSION_EXPIRED_PARAM in route.query
 
 onMounted(async () => {
-  // Check if OIDC is available
   try {
-    const res = await fetch('/api/auth/oidc')
-    if (res.ok) {
-      oidcAvailable.value = true
-      // Try to get provider name from admin endpoint (won't work without auth, that's ok)
-    }
+    const status = await authApi.oidcStatus()
+    oidcAvailable.value = status.enabled
+    oidcName.value = status.name
   } catch {
-    // OIDC not available
+    // Offline, or a server that predates the endpoint: just no SSO button.
   }
 })
 
@@ -58,7 +68,7 @@ async function loginWithOidc() {
   oidcLoading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ url: string }>('/api/auth/oidc')
+    const data = await authApi.oidcStart()
     window.location.href = data.url
   } catch (e: unknown) {
     error.value = apiErrorMessage(e, 'errors.auth.oidcLoginFailed')
@@ -138,7 +148,13 @@ async function loginWithOidc() {
             :disabled="oidcLoading"
             class="btn btn-quiet w-full"
           >
-            {{ oidcLoading ? $t('auth.redirecting') : $t('auth.signInWithSso') }}
+            {{
+              oidcLoading
+                ? $t('auth.redirecting')
+                : oidcName
+                  ? $t('auth.signInWithProvider', { name: oidcName })
+                  : $t('auth.signInWithSso')
+            }}
           </button>
         </div>
 

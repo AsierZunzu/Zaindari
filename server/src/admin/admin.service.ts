@@ -3,17 +3,20 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { TaskType } from '@prisma/client';
 import { apiError, ERROR_CODES } from '../common/errors/api-error.js';
 import { SchedulesService } from '../schedules/schedules.service.js';
+import { resolveEnvOidcConfig, type OidcEnv } from '../auth/oidc-env.js';
 
 @Injectable()
 export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly schedulesService: SchedulesService,
+    private readonly configService: ConfigService,
   ) {}
 
   // ── Users ──────────────────────────────────────────────────────────
@@ -141,13 +144,39 @@ export class AdminService {
 
   // ── OIDC Config ────────────────────────────────────────────────────
 
+  private envOidcConfig() {
+    return resolveEnvOidcConfig(this.configService.get<OidcEnv>('oidc') ?? {});
+  }
+
+  /**
+   * While the environment configures the provider, the panel is read-only:
+   * an edit here would be silently overridden by env on every sign-in, which
+   * is worse than refusing it.
+   */
+  private assertOidcEditable() {
+    if (this.envOidcConfig()) {
+      throw new ConflictException(
+        apiError(
+          ERROR_CODES.oidcManagedByEnv,
+          'OIDC is configured by environment variables',
+        ),
+      );
+    }
+  }
+
   async getOidcConfig() {
+    const fromEnv = this.envOidcConfig();
+    if (fromEnv) {
+      return { ...fromEnv, clientSecret: '********', source: 'env' as const };
+    }
+
     const config = await this.prisma.oidcConfig.findFirst();
     if (!config) return null;
 
     return {
       ...config,
       clientSecret: '********',
+      source: 'database' as const,
     };
   }
 
@@ -158,6 +187,7 @@ export class AdminService {
     clientSecret?: string;
     enabled?: boolean;
   }) {
+    this.assertOidcEditable();
     const existing = await this.prisma.oidcConfig.findFirst();
 
     if (existing) {
@@ -177,7 +207,11 @@ export class AdminService {
         where: { id: existing.id },
         data: updateData,
       });
-      return { ...updated, clientSecret: '********' };
+      return {
+        ...updated,
+        clientSecret: '********',
+        source: 'database' as const,
+      };
     }
 
     if (!data.clientSecret || data.clientSecret === '********') {
@@ -195,10 +229,15 @@ export class AdminService {
         enabled: data.enabled ?? true,
       },
     });
-    return { ...created, clientSecret: '********' };
+    return {
+      ...created,
+      clientSecret: '********',
+      source: 'database' as const,
+    };
   }
 
   async deleteOidcConfig() {
+    this.assertOidcEditable();
     const existing = await this.prisma.oidcConfig.findFirst();
     if (!existing) {
       throw new NotFoundException('OIDC config not found');

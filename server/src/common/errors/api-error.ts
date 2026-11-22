@@ -20,6 +20,10 @@ export const ERROR_CODES = {
   usernameTaken: 'auth.usernameTaken',
   invalidCredentials: 'auth.invalidCredentials',
   sessionExpired: 'auth.sessionExpired',
+  oidcNotConfigured: 'auth.oidcNotConfigured',
+  oidcDenied: 'auth.oidcDenied',
+  oidcFailed: 'auth.oidcFailed',
+  oidcManagedByEnv: 'admin.oidcManagedByEnv',
 
   plantOwnerOnly: 'plants.ownerOnly',
   plantShareOwnerOnly: 'plants.shareOwnerOnly',

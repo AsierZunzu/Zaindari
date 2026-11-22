@@ -20,6 +20,21 @@ export default () => ({
   signup: {
     enabled: (process.env.ZAINDARI_SIGNUP_ENABLED ?? 'true') === 'true',
   },
+  oidc: {
+    // The provider itself. All three of issuer/client ID/secret, or none: when
+    // set they override the admin panel's OidcConfig row, which then becomes
+    // read-only. Resolved and validated by `auth/oidc-env.ts`.
+    name: process.env.ZAINDARI_OIDC_NAME,
+    issuerUrl: process.env.ZAINDARI_OIDC_ISSUER_URL,
+    clientId: process.env.ZAINDARI_OIDC_CLIENT_ID,
+    clientSecret: process.env.ZAINDARI_OIDC_CLIENT_SECRET,
+    // A first OIDC sign-in links to the local account with the same email only
+    // when the provider marks the address `email_verified`. Set this to trust
+    // providers that omit the claim — anyone who can choose their email there
+    // can then take over the matching account.
+    trustUnverifiedEmail:
+      (process.env.ZAINDARI_OIDC_TRUST_UNVERIFIED_EMAIL ?? 'false') === 'true',
+  },
   admin: {
     // Bootstrap escape hatch: only an admin can mint another admin, so without
     // this a fresh install has no reachable admin panel. The account claiming

@@ -83,6 +83,20 @@ export const useAuthStore = defineStore('auth', () => {
     persistSession(response.accessToken, response.user)
   }
 
+  /**
+   * Finishes a single sign-on. The server's callback only set the refresh
+   * cookie (an access token in the redirect URL would end up in history), so
+   * this asks for the profile with no token at all and lets the api client's
+   * single-flight refresh trade the cookie for one — the same path a reload
+   * with an expired token takes, rather than a second rotation of our own.
+   */
+  async function completeSso() {
+    const profile = await authApi.getMe()
+    const token = localStorage.getItem(TOKEN_KEY)
+    if (!token) throw new Error('No access token after single sign-on')
+    persistSession(token, profile)
+  }
+
   async function logout() {
     // Revoke the refresh token server-side and drop the cookie. Best-effort:
     // a failure here must not trap the user in a logged-in UI.
@@ -172,6 +186,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     login,
     register,
+    completeSso,
     logout,
     clearSession,
     refreshToken,

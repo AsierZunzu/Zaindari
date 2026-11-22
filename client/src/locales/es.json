@@ -58,6 +58,7 @@
     "signingIn": "Iniciando sesión...",
     "or": "o",
     "signInWithSso": "Iniciar sesión con SSO",
+    "signInWithProvider": "Iniciar sesión con {name}",
     "redirecting": "Redirigiendo...",
     "noAccount": "¿No tienes cuenta?",
     "signUp": "Regístrate",
@@ -299,7 +300,10 @@
       "disabled": "Desactivado",
       "saved": "Configuración de OIDC guardada",
       "deleted": "Configuración de OIDC eliminada",
-      "deleteConfirm": "¿Eliminar la configuración de OIDC? Los usuarios ya no podrán iniciar sesión con OIDC."
+      "deleteConfirm": "¿Eliminar la configuración de OIDC? Los usuarios ya no podrán iniciar sesión con OIDC.",
+      "redirectUri": "URI de redirección",
+      "redirectUriHint": "Registra exactamente esta URL como URI de redirección permitida en la configuración del cliente de tu proveedor de identidad.",
+      "managedByEnv": "Este proveedor lo definen las variables de entorno ZAINDARI_OIDC_*, así que no se puede editar aquí. Cámbialas o elimínalas y reinicia el servidor."
     }
   },
   "errors": {
@@ -310,7 +314,9 @@
       "usernameTaken": "Ese usuario ya está en uso.",
       "invalidCredentials": "Usuario o contraseña incorrectos.",
       "sessionExpired": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
-      "noToken": "No se ha recibido ningún token de autenticación.",
+      "oidcNotConfigured": "El inicio de sesión único no está configurado en este servidor.",
+      "oidcDenied": "Tu proveedor de identidad ha cancelado o no ha permitido el inicio de sesión único.",
+      "oidcFailed": "No se ha podido completar el inicio de sesión único. Vuelve a intentarlo.",
       "sessionInitFailed": "No se ha podido iniciar tu sesión. Vuelve a iniciar sesión.",
       "loginFailed": "No se ha podido iniciar sesión. Vuelve a intentarlo.",
       "oidcLoginFailed": "No se ha podido iniciar el inicio de sesión único. Vuelve a intentarlo.",
@@ -350,7 +356,8 @@
       "loadConfigFailed": "No se ha podido cargar la configuración.",
       "saveConfigFailed": "No se ha podido guardar la configuración.",
       "saveOidcFailed": "No se ha podido guardar la configuración de OIDC.",
-      "deleteOidcFailed": "No se ha podido eliminar la configuración de OIDC."
+      "deleteOidcFailed": "No se ha podido eliminar la configuración de OIDC.",
+      "oidcManagedByEnv": "OIDC está configurado mediante variables de entorno y no se puede cambiar aquí."
     },
     "data": {
       "noBundleUploaded": "No se ha subido ningún archivo de copia.",

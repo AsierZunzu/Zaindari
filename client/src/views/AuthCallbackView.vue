@@ -1,33 +1,23 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppIcon from '../components/AppIcon.vue'
-import { useI18n } from 'vue-i18n'
+import { useApiError } from '../composables/useApiError'
 
 const router = useRouter()
-const route = useRoute()
 const auth = useAuthStore()
-const { t } = useI18n()
+const { apiErrorMessage } = useApiError()
 const error = ref('')
 
+// The server lands here only after a successful sign-on, having set the
+// refresh cookie; failures go back to /login with a code instead.
 onMounted(async () => {
-  const token = route.query.token as string | undefined
-  if (!token) {
-    error.value = t('errors.auth.noToken')
-    return
-  }
-
-  // Store the token
-  localStorage.setItem('accessToken', token)
-  auth.accessToken = token
-
   try {
-    await auth.initialize()
+    await auth.completeSso()
     router.replace('/')
-  } catch {
-    error.value = t('errors.auth.sessionInitFailed')
-    localStorage.removeItem('accessToken')
+  } catch (e: unknown) {
+    error.value = apiErrorMessage(e, 'errors.auth.sessionInitFailed')
   }
 })
 </script>

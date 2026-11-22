@@ -1,9 +1,17 @@
-import { describe, it, expect } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, vi } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../LoginView.vue'
 import { createTestI18n } from '../../test/i18n'
+import { authApi } from '../../api/auth'
+
+vi.mock('../../api/auth', () => ({
+  authApi: {
+    oidcStatus: vi.fn(),
+    oidcStart: vi.fn(),
+  },
+}))
 
 const router = createRouter({
   history: createWebHistory(),
@@ -25,6 +33,7 @@ function mountLogin() {
 describe('LoginView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.mocked(authApi.oidcStatus).mockResolvedValue({ enabled: false, name: null })
   })
 
   it('renders login form', () => {
@@ -55,5 +64,30 @@ describe('LoginView', () => {
   it('has link to register page', () => {
     const wrapper = mountLogin()
     expect(wrapper.text()).toContain('Sign up')
+  })
+
+  it('hides single sign-on when the server has none', async () => {
+    const wrapper = mountLogin()
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('Sign in with')
+  })
+
+  it('offers single sign-on under the provider name', async () => {
+    vi.mocked(authApi.oidcStatus).mockResolvedValue({ enabled: true, name: 'Authentik' })
+    const wrapper = mountLogin()
+    await flushPromises()
+    expect(wrapper.text()).toContain('Sign in with Authentik')
+  })
+
+  it('words the error the OIDC callback redirected back with', async () => {
+    await router.push('/login?sso=auth.signupDisabled')
+    const wrapper = mountLogin()
+    expect(wrapper.text()).toContain('Sign-ups are currently disabled.')
+  })
+
+  it('falls back to a generic SSO error for an unknown code', async () => {
+    await router.push('/login?sso=auth.somethingNew')
+    const wrapper = mountLogin()
+    expect(wrapper.text()).toContain('Single sign-on could not be completed.')
   })
 })
