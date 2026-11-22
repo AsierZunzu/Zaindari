@@ -58,6 +58,7 @@
     "signingIn": "Saioa hasten...",
     "or": "edo",
     "signInWithSso": "Hasi saioa SSO bidez",
+    "signInWithProvider": "Hasi saioa {name} bidez",
     "redirecting": "Birbideratzen...",
     "noAccount": "Ez duzu konturik?",
     "signUp": "Eman izena",
@@ -299,7 +300,10 @@
       "disabled": "Desgaituta",
       "saved": "OIDC konfigurazioa gorde da",
       "deleted": "OIDC konfigurazioa ezabatu da",
-      "deleteConfirm": "OIDC konfigurazioa ezabatu? Erabiltzaileek ezin izango dute OIDC bidez saioa hasi."
+      "deleteConfirm": "OIDC konfigurazioa ezabatu? Erabiltzaileek ezin izango dute OIDC bidez saioa hasi.",
+      "redirectUri": "Birbideratze-URIa",
+      "redirectUriHint": "Erregistratu URL hau zehatz-mehatz birbideratze-URI baimendu gisa zure identitate-hornitzailearen bezeroaren ezarpenetan.",
+      "managedByEnv": "Hornitzaile hau ZAINDARI_OIDC_* ingurune-aldagaiek ezartzen dute, eta ezin da hemen editatu. Aldatu edo kendu itzazu eta berrabiarazi zerbitzaria."
     }
   },
   "errors": {
@@ -310,7 +314,9 @@
       "usernameTaken": "Erabiltzaile-izen hori hartuta dago.",
       "invalidCredentials": "Erabiltzaile-izena edo pasahitza okerra da.",
       "sessionExpired": "Zure saioa iraungi da. Hasi saioa berriro.",
-      "noToken": "Ez da autentifikazio-tokenik jaso.",
+      "oidcNotConfigured": "Saio-hasiera bakarra ez dago konfiguratuta zerbitzari honetan.",
+      "oidcDenied": "Zure identitate-hornitzaileak saio-hasiera bakarra bertan behera utzi du edo ez du baimendu.",
+      "oidcFailed": "Ezin izan da saio-hasiera bakarra osatu. Saiatu berriro.",
       "sessionInitFailed": "Ezin izan da zure saioa hasi. Hasi saioa berriro.",
       "loginFailed": "Ezin izan da saioa hasi. Saiatu berriro.",
       "oidcLoginFailed": "Ezin izan da saio-hasiera bakarra abiarazi. Saiatu berriro.",
@@ -350,7 +356,8 @@
       "loadConfigFailed": "Ezin izan da konfigurazioa kargatu.",
       "saveConfigFailed": "Ezin izan da konfigurazioa gorde.",
       "saveOidcFailed": "Ezin izan da OIDC konfigurazioa gorde.",
-      "deleteOidcFailed": "Ezin izan da OIDC konfigurazioa ezabatu."
+      "deleteOidcFailed": "Ezin izan da OIDC konfigurazioa ezabatu.",
+      "oidcManagedByEnv": "OIDC ingurune-aldagaien bidez dago konfiguratuta, eta ezin da hemen aldatu."
     },
     "data": {
       "noBundleUploaded": "Ez da kopia-fitxategirik igo.",

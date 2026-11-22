@@ -58,6 +58,7 @@
     "signingIn": "Signing in...",
     "or": "or",
     "signInWithSso": "Sign in with SSO",
+    "signInWithProvider": "Sign in with {name}",
     "redirecting": "Redirecting...",
     "noAccount": "Don't have an account?",
     "signUp": "Sign up",
@@ -299,7 +300,10 @@
       "disabled": "Disabled",
       "saved": "OIDC configuration saved",
       "deleted": "OIDC configuration deleted",
-      "deleteConfirm": "Delete OIDC configuration? Users will no longer be able to sign in with OIDC."
+      "deleteConfirm": "Delete OIDC configuration? Users will no longer be able to sign in with OIDC.",
+      "redirectUri": "Redirect URI",
+      "redirectUriHint": "Register this exact URL as an allowed redirect URI in your identity provider's client settings.",
+      "managedByEnv": "This provider is set by the ZAINDARI_OIDC_* environment variables, so it can't be edited here. Change or remove them and restart the server."
     }
   },
   "errors": {
@@ -310,7 +314,9 @@
       "usernameTaken": "That username is already taken.",
       "invalidCredentials": "Incorrect username or password.",
       "sessionExpired": "Your session has expired. Please sign in again.",
-      "noToken": "No authentication token received.",
+      "oidcNotConfigured": "Single sign-on is not set up on this server.",
+      "oidcDenied": "Single sign-on was cancelled or not allowed by your identity provider.",
+      "oidcFailed": "Single sign-on could not be completed. Please try again.",
       "sessionInitFailed": "Could not start your session. Please sign in again.",
       "loginFailed": "Could not sign you in. Please try again.",
       "oidcLoginFailed": "Could not start single sign-on. Please try again.",
@@ -350,7 +356,8 @@
       "loadConfigFailed": "Could not load the configuration.",
       "saveConfigFailed": "Could not save the configuration.",
       "saveOidcFailed": "Could not save the OIDC configuration.",
-      "deleteOidcFailed": "Could not delete the OIDC configuration."
+      "deleteOidcFailed": "Could not delete the OIDC configuration.",
+      "oidcManagedByEnv": "OIDC is configured by environment variables and can't be changed here."
     },
     "data": {
       "noBundleUploaded": "No backup file was uploaded.",

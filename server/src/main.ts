@@ -3,6 +3,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { isValidTimeZone } from './tasks/zoned-time.js';
+import { resolveEnvOidcConfig, type OidcEnv } from './auth/oidc-env.js';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import cookieParser from 'cookie-parser';
@@ -65,6 +66,17 @@ async function bootstrap() {
     throw new Error(
       `TZ is set to "${zone}", which is not a timezone this runtime recognises. ` +
         'Use an IANA name such as "Europe/Madrid", or "UTC".',
+    );
+  }
+
+  // Throws on a half-set provider, for the same reason as TZ above: it would
+  // otherwise boot looking configured and fail only at someone's first sign-in.
+  const envOidc = resolveEnvOidcConfig(
+    configService.get<OidcEnv>('oidc') ?? {},
+  );
+  if (envOidc) {
+    console.log(
+      `OIDC provider "${envOidc.name}" configured from the environment (${envOidc.issuerUrl})`,
     );
   }
 

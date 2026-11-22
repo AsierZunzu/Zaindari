@@ -77,8 +77,8 @@ Settings live in three places, by design:
 
 | Where | What | Edited how |
 | --- | --- | --- |
-| Environment | port, `DATABASE_URL`, JWT settings, cookie mode, signup toggle, bootstrap admin, `TZ` | `.env` |
-| Database (`AppConfig`, `OidcConfig`) | VAPID keys, OIDC provider, default schedule intervals | admin panel |
+| Environment | port, `DATABASE_URL`, JWT settings, cookie mode, signup toggle, bootstrap admin, OIDC provider (optional) and email trust, `TZ` | `.env` |
+| Database (`AppConfig`, `OidcConfig`) | VAPID keys, OIDC provider (when not set in env), default schedule intervals | admin panel |
 | Per user | locale, reminder times | Settings screen |
 
 See `.env.example` for the annotated environment variables. Anything a user should be able
@@ -88,6 +88,20 @@ people can legitimately want different answers from the same row of data.
 `ZAINDARI_COOKIE_SECURE=auto` mirrors the request protocol, so plain-HTTP access over a LAN
 keeps working. Set it to `true` if TLS is terminated by a proxy that doesn't forward
 `X-Forwarded-Proto`.
+
+### Single sign-on
+
+Configure the provider with `ZAINDARI_OIDC_ISSUER_URL`, `ZAINDARI_OIDC_CLIENT_ID` and
+`ZAINDARI_OIDC_CLIENT_SECRET` (plus an optional `ZAINDARI_OIDC_NAME` for the login button), or
+under **Admin → OIDC** if those are left empty. The environment wins and leaves the panel
+read-only, and setting only some of the three stops the server at boot. Either way, register
+`<your origin>/api/auth/oidc/callback` with the provider; the admin panel shows the exact URL. A first SSO sign-in links to the existing
+account with the same email if the provider marks that address `email_verified`; otherwise
+it creates a new account, which needs `ZAINDARI_SIGNUP_ENABLED=true`. The only exception is
+the bootstrap admin. For a provider that never sends `email_verified`,
+`ZAINDARI_OIDC_TRUST_UNVERIFIED_EMAIL=true` links on the email alone. Only set it if users
+can't choose arbitrary addresses at the provider, because anyone who can claim an email
+there can take over the matching account.
 
 > **Note on time:** all due-date and reminder math is done in UTC. `TZ` affects logs, not
 > when a reminder fires — an hour configured as 09:00 means 09:00 UTC.

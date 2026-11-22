@@ -53,6 +53,8 @@ export interface OidcConfig {
   enabled: boolean
   createdAt: string
   updatedAt: string
+  /** `env` when ZAINDARI_OIDC_* set it; the panel is read-only then. */
+  source: 'env' | 'database'
 }
 
 export interface OidcConfigInput {

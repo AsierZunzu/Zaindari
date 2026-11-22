@@ -26,6 +26,8 @@ const form = ref<OidcConfigInput>({
 
 const isEditing = ref(false)
 
+const redirectUri = `${window.location.origin}/api/auth/oidc/callback`
+
 onMounted(() => fetchConfig())
 
 async function fetchConfig() {
@@ -130,6 +132,13 @@ async function deleteConfig() {
     <div v-if="error" class="mb-4 rounded-md bg-overdue-soft px-3 py-2.5 text-sm text-overdue-ink">{{ error }}</div>
     <div v-if="success" class="mb-4 rounded-md bg-done-soft px-3 py-2.5 text-sm text-done-ink">{{ success }}</div>
 
+    <!-- What to register at the provider; the server derives the same URL from the request. -->
+    <div class="card-inset mb-4 p-4">
+      <p class="field-label">{{ $t('admin.oidc.redirectUri') }}</p>
+      <code class="mt-1 block break-all text-sm text-ink">{{ redirectUri }}</code>
+      <p class="mt-2 text-xs text-ink-faint">{{ $t('admin.oidc.redirectUriHint') }}</p>
+    </div>
+
     <!-- Loading -->
     <LoadingPlaceholder v-if="loading" :count="3" />
 
@@ -170,7 +179,14 @@ async function deleteConfig() {
             </span>
           </div>
         </div>
-        <div class="mt-6 flex gap-2">
+        <p
+          v-if="config.source === 'env'"
+          role="status"
+          class="mt-6 rounded-md bg-due-soft px-3 py-2.5 text-sm text-due-ink"
+        >
+          {{ $t('admin.oidc.managedByEnv') }}
+        </p>
+        <div v-else class="mt-6 flex gap-2">
           <button
             @click="startEdit"
             class="btn btn-primary"
